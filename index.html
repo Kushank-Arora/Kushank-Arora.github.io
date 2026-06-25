@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Body Recomp Tracker</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .d-none { display: none !important; }
+        
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .active-task-card {
+            border-color: #10b981;
+            background-color: #1e293b;
+            animation: subtlePulse 2s infinite;
+        }
+
+        /* Hide Number Input Spinners */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="pb-32">
+
+    <!-- Fixed Header -->
+    <header class="sticky top-0 z-30 glass-panel">
+        <div class="max-w-2xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                    <i class="fas fa-fire text-emerald-500"></i>
+                    Recomp<span class="text-emerald-500">Tracker</span>
+                </h1>
+                
+                <!-- Session Badge with Global Timer -->
+                <div id="session-badge" class="d-none flex items-center bg-slate-800 rounded-full border border-slate-700 overflow-hidden transition-colors duration-300">
+                    <div class="flex items-center gap-2 px-3 py-1.5" id="session-badge-status">
+                        <span class="relative flex h-2.5 w-2.5" id="session-badge-ping-container">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" id="session-badge-ping"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" id="session-badge-dot"></span>
+                        </span>
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider" id="session-badge-text">Active</span>
+                    </div>
+                    <div class="bg-slate-900/50 px-3 py-1.5 border-l border-slate-700">
+                        <span id="session-timer" class="text-sm font-mono font-bold text-slate-300">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Day Tabs -->
+            <div id="tabs-container" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar"></div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="h-1 bg-slate-800 w-full">
+            <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="max-w-2xl mx-auto px-4 py-6"></main>
+
+    <!-- Bottom Action Bar -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-700/50 p-4 z-20 transition-transform duration-300">
+        <div class="max-w-2xl mx-auto flex gap-3" id="bottom-bar-content">
+            <!-- Idle State Button -->
+            <button id="btn-start-session" class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+                Start Workout
+            </button>
+            
+            <!-- Active State Button -->
+            <button id="btn-end-session" class="d-none flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 flex justify-center items-center gap-2 active:scale-95">
+                <i class="fas fa-flag-checkered"></i> Finish Session
+            </button>
+
+            <!-- Finished State Buttons -->
+            <button id="btn-share-session" class="d-none flex-1 py-4 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 active:scale-95">
+                <i class="fas fa-share-nodes"></i> Share
+            </button>
+            <button id="btn-resume-main" class="d-none flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-lg transition-all flex justify-center items-center gap-2 active:scale-95 border border-slate-600">
+                <i class="fas fa-play text-sm"></i> Resume
+            </button>
+
+            <!-- Global Reset Button -->
+            <button id="btn-reset-session" class="d-none px-6 py-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-xl transition-all active:scale-95">
+                <i class="fas fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Hybrid Video Modal Overlay -->
+    <div id="video-modal" class="d-none fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm transition-opacity">
+        <div class="w-full max-w-4xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-slate-700">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <i class="fab fa-youtube text-red-500 text-xl"></i> Tutorial
+                </h3>
+                <button id="btn-close-video" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 h-8 w-8 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="relative pt-[56.25%] bg-black">
+                <iframe id="video-iframe" class="absolute inset-0 w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            <div class="p-5 bg-slate-800 border-t border-slate-700 text-center">
+                <p class="text-xs text-slate-400 mb-3">If the video says "Unavailable", the creator disabled embedding.</p>
+                <a id="fallback-youtube-link" href="#" target="_blank" class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-colors active:scale-95 shadow-lg shadow-red-600/20">
+                    <i class="fas fa-external-link-alt"></i> Open in YouTube
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog Overlay -->
+    <div id="confirm-modal" class="d-none fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
+        <div class="bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-700">
+            <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 mx-auto border border-red-500/50">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-2 text-center">Reset Tracker?</h3>
+            <p class="text-slate-400 mb-8 text-center text-sm leading-relaxed">This will wipe your timers and progress for today. You cannot undo this.</p>
+            <div class="flex gap-3">
+                <button id="btn-cancel-reset" class="flex-1 py-3 rounded-xl font-semibold text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">Cancel</button>
+                <button id="btn-confirm-reset" class="flex-1 py-3 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal Overlay -->
+    <div id="summary-modal" class="d-none fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md overflow-y-auto pt-20 pb-20">
+        <div class="w-full max-w-lg bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 m-auto relative">
+            
+            <!-- NEW: Standalone Close Button (The X) -->
+            <button id="btn-close-summary" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+
+            <div class="text-center mb-6 mt-4">
+                <div class="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/50">
+                    <i class="fas fa-trophy text-4xl text-emerald-400"></i>
+                </div>
+                <h2 class="text-3xl font-black text-white mb-1">Session Complete</h2>
+                <p class="text-slate-400">Total Duration: <span id="summary-total-time" class="text-white font-bold">00:00</span></p>
+            </div>
+
+            <div id="summary-text-box" class="bg-slate-900 rounded-xl p-4 mb-6 max-h-60 overflow-y-auto border border-slate-700 text-xs sm:text-sm font-mono whitespace-pre-wrap text-slate-300 leading-relaxed"></div>
+
+            <div class="flex flex-col gap-3">
+                <button id="btn-whatsapp" class="w-full py-4 bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 active:scale-95">
+                    <i class="fab fa-whatsapp text-xl"></i> Send to WhatsApp
+                </button>
+                <button id="btn-copy" class="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl flex justify-center items-center gap-2 transition-all active:scale-95">
+                    <i class="far fa-copy text-lg"></i> Copy to Clipboard
+                </button>
+                <div class="flex gap-3 mt-2 border-t border-slate-700 pt-5">
+                    <!-- Updated Resume Logic applied to this button too -->
+                    <button id="btn-resume-modal" class="flex-1 py-3 bg-transparent border border-slate-600 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-all">
+                        Wait, Resume Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[120] bg-slate-800 text-emerald-400 px-6 py-3 rounded-full font-bold shadow-2xl border border-emerald-500/30 flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4">
+        <i class="fas fa-check-circle"></i> <span id="toast-msg">Success</span>
+    </div>
+
+    <script>
+        const WARMUP_ROUTINE = [
+            { id: 'w1', name: 'Jumping Jacks', details: '60s. Increases heart rate.', videoId: 'uLVt6u15L98' },
+            { id: 'w2', name: 'Arm Circles & Swings', details: '30s each. Preps shoulders.', videoId: '3STTSi_jdHk' },
+            { id: 'w3', name: 'Cat-Cow Stretch', details: '10 reps. Loosens spine.', videoId: 'LIVJZZyZ2qM' },
+            { id: 'w4', name: 'World\'s Greatest Stretch', details: '5 reps/side. Opens hips.', videoId: '7XheaZERvBQ' },
+            { id: 'w5', name: 'Bodyweight Squats', details: '15 reps. Primes joints.', videoId: 'm0GcZ24pK6k' }
+        ];
+
+        const WORKOUT_PLAN = {
+            Monday: {
+                location: 'Gym 1',
+                focus: 'Upper Body Strength & Hypertrophy',
+                exercises: [
+                    { id: 'm1', name: 'Barbell Bench Press', sets: '4 sets of 6-8 reps', equipment: 'Eleiko Rack & Bench', videoId: 'hWbUlkb5Ms4' },
+                    { id: 'm2', name: 'TRX Inverted Rows', sets: '3 sets to failure', equipment: 'TRX Suspension Trainers', videoId: 'FyXAZW5zDhw' },
+                    { id: 'm3', name: 'Dumbbell Seated OHP', sets: '3 sets of 8-10 reps', equipment: 'Dumbbells & Bench', videoId: 'rO_iEImwHyo' },
+                    { id: 'm4', name: 'Keiser Cable Chest Flyes', sets: '3 sets of 12-15 reps', equipment: 'Keiser Machine', videoId: 'I-Ue34qLxc4' },
+                    { id: 'm5', name: 'Dumbbell Bicep Curls', sets: '3 sets of 10-12 reps', equipment: 'Dumbbells', videoId: 'cBSD6mQIPQk' },
+                    { id: 'm6', name: 'Tricep Pushdowns', sets: '3 sets of 12-15 reps', equipment: 'Keiser Machine (Rope)', videoId: 'NvZKjiZ8NYc' }
+                ]
+            },
+            Tuesday: {
+                location: 'Gym 2',
+                focus: 'Lower Body Strength & Core',
+                exercises: [
+                    { id: 't1', name: 'Barbell Back Squats', sets: '4 sets of 6-8 reps', equipment: 'Barbell & Squat Rack', videoId: 'gcNh17Ckjgg' },
+                    { id: 't2', name: 'Kettlebell Goblet Squats', sets: '3 sets of 10-12 reps', equipment: 'Kettlebells', videoId: 'QilYZ20kVfM' },
+                    { id: 't3', name: 'Leg Extensions', sets: '3 sets of 12-15 reps', equipment: 'BLK BOX Leg Extension', videoId: 'uM86QE59Tgc' },
+                    { id: 't4', name: 'Leg Curls', sets: '3 sets of 12-15 reps', equipment: 'BLK BOX Leg Curl', videoId: 't9sTSr-JYSs' },
+                    { id: 't5', name: 'Keiser Cable Crunches', sets: '3 sets of 15 reps', equipment: 'Keiser Machine (Rope)', videoId: 'CDO29I7PCoc' }
+                ]
+            },
+            Wednesday: {
+                location: 'Gym 1',
+                focus: 'Full Body HIIT Conditioning',
+                exercises: [
+                    { id: 'w1', name: 'Concept2 SkiErg', sets: '5 rounds x 250m', equipment: 'Concept2 SkiErg', videoId: 'B0lIgT5PHc8' },
+                    { id: 'w2', name: 'Kettlebell Swings', sets: '4 sets of 15 reps', equipment: 'Kettlebells', videoId: 'RU88iqRVunk' },
+                    { id: 'w3', name: 'Keiser Woodchoppers', sets: '3 sets of 12 reps/side', equipment: 'Keiser Machine (Handle)', videoId: 'pAplQXk3dkU' },
+                    { id: 'w4', name: 'AssaultBike Finisher', sets: '10 mins (15s sprint/45s slow)', equipment: 'AssaultBike', videoId: 'Fv8tIEJhcsc' }
+                ]
+            },
+            Thursday: {
+                location: 'Gym 2',
+                focus: 'Upper Body Pump Day',
+                exercises: [
+                    { id: 'th1', name: 'Barbell Overhead Press', sets: '4 sets of 8-10 reps', equipment: 'Barbell & Rack', videoId: '4LBVP2Oe7fg' },
+                    { id: 'th2', name: 'DB Incline Bench Press', sets: '3 sets of 8-12 reps', equipment: 'Dumbbells & Incline Bench', videoId: '8iPEnn-ltC8' },
+                    { id: 'th3', name: 'DB Single-Arm Rows', sets: '3 sets of 10-12 reps/arm', equipment: 'Dumbbells & Flat Bench', videoId: 'qN54-QNO1eQ' },
+                    { id: 'th4', name: 'Keiser Lateral Raises', sets: '3 sets of 15 reps/arm', equipment: 'Keiser Machine', videoId: 'f_OGBg2KxgY' },
+                    { id: 'th5', name: 'Keiser Cable Bicep Curls', sets: '3 sets of 12 reps', equipment: 'Keiser Machine', videoId: '2MUEL4nL6hA' },
+                    { id: 'th6', name: 'Keiser Tricep Ext.', sets: '3 sets of 12 reps', equipment: 'Keiser Machine (Rope)', videoId: 'b5le--KkyH0' }
+                ]
+            },
+            Saturday: {
+                location: 'Gym 2',
+                focus: 'Lower Body Hypertrophy & Carry',
+                exercises: [
+                    { id: 's1', name: 'Barbell RDLs', sets: '4 sets of 8-10 reps', equipment: 'Barbell & Weights', videoId: '5rIqP63yWFg' },
+                    { id: 's2', name: 'Dumbbell Walking Lunges', sets: '3 sets of 12 steps/leg', equipment: 'Dumbbells', videoId: 'mJilHWIBWO8' },
+                    { id: 's3', name: 'Leg Extensions', sets: '3 sets of 15 reps', equipment: 'BLK BOX Leg Extension', videoId: 'uM86QE59Tgc' },
+                    { id: 's4', name: 'Leg Curls', sets: '3 sets of 15 reps', equipment: 'BLK BOX Leg Curl', videoId: 't9sTSr-JYSs' },
+                    { id: 's5', name: 'DB Carries & KB Swings', sets: '4 rounds (40 paces + 15 swings)', equipment: 'Dumbbells & Kettlebell', videoId: '1uOs1hP3u4A' }
+                ]
+            }
+        };
+
+        const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const getTodayStr = () => {
+            const today = DAYS[new Date().getDay()];
+            return WORKOUT_PLAN[today] ? today : 'Monday'; 
+        };
+
+        // --- APP STATE ---
+        let state = {
+            selectedDay: getTodayStr(),
+            
+            // 1. Decoupled State Variables
+            sessionStatus: 'idle', // 'idle' | 'active' | 'finished'
+            isShareVisible: false, // Dialog state
+            
+            // Timer state
+            sessionStartTime: null, // Time since the start of the CURRENT active burst
+            accumulatedTime: 0,     // Total paused/finished time safely accumulated
+
+            activeTaskId: null,
+            taskTimes: {}, 
+            taskCompleted: {}, 
+            logs: {},
+            timerInterval: null
+        };
+        
+        let sessionInterval = null; 
+        const STORAGE_KEY = 'recomp_tracker_data_v2';
+
+        const saveState = () => {
+            const dataToSave = {
+                date: new Date().toDateString(),
+                state: {
+                    selectedDay: state.selectedDay,
+                    sessionStatus: state.sessionStatus,
+                    isShareVisible: state.isShareVisible,
+                    sessionStartTime: state.sessionStartTime,
+                    accumulatedTime: state.accumulatedTime,
+                    taskTimes: state.taskTimes,
+                    taskCompleted: state.taskCompleted,
+                    logs: state.logs
+                }
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        };
+
+        const loadState = () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            // Backward compatibility for old versions if needed
+            const legacySaved = localStorage.getItem('recomp_tracker_data');
+            
+            const processLoad = (parsed) => {
+                if (parsed.date === new Date().toDateString()) {
+                    state = { ...state, ...parsed.state };
+                    state.activeTaskId = null; // Prevent auto-starting task timers on reload
+                    
+                    // Legacy migration from isSessionActive boolean
+                    if (parsed.state.isSessionActive !== undefined) {
+                        state.sessionStatus = parsed.state.isSessionActive ? 'active' : 'idle';
+                        delete state.isSessionActive;
+                        state.isShareVisible = false;
+                        state.accumulatedTime = 0;
+                    }
+
+                    if (state.sessionStatus === 'active') {
+                        startGlobalTimer();
+                    } else if (state.sessionStatus === 'finished') {
+                        // Keep global timer stopped, just calculate the static UI once
+                        updateSessionTimerUI();
+                    }
+                } else {
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem('recomp_tracker_data');
+                }
+            };
+
+            if (saved) {
+                try { processLoad(JSON.parse(saved)); } catch(e) { console.error(e); }
+            } else if (legacySaved) {
+                try { processLoad(JSON.parse(legacySaved)); localStorage.removeItem('recomp_tracker_data'); } catch(e) { console.error(e); }
+            }
+        };
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            tabsContainer: document.getElementById('tabs-container'),
+            mainContent: document.getElementById('main-content'),
+            progressBar: document.getElementById('progress-bar'),
+            sessionBadge: document.getElementById('session-badge'),
+            sessionTimer: document.getElementById('session-timer'),
+            badgeStatus: document.getElementById('session-badge-status'),
+            badgePingContainer: document.getElementById('session-badge-ping-container'),
+            badgeText: document.getElementById('session-badge-text'),
+            badgeDot: document.getElementById('session-badge-dot'),
+            
+            // Bottom bar buttons
+            btnStart: document.getElementById('btn-start-session'),
+            btnEnd: document.getElementById('btn-end-session'),
+            btnShare: document.getElementById('btn-share-session'),
+            btnResumeMain: document.getElementById('btn-resume-main'),
+            btnReset: document.getElementById('btn-reset-session'),
+            
+            // Modals
+            videoModal: document.getElementById('video-modal'),
+            videoIframe: document.getElementById('video-iframe'),
+            fallbackYoutubeLink: document.getElementById('fallback-youtube-link'),
+            btnCloseVideo: document.getElementById('btn-close-video'),
+            
+            confirmModal: document.getElementById('confirm-modal'),
+            btnConfirmReset: document.getElementById('btn-confirm-reset'),
+            btnCancelReset: document.getElementById('btn-cancel-reset'),
+            
+            summaryModal: document.getElementById('summary-modal'),
+            summaryTime: document.getElementById('summary-total-time'),
+            summaryBox: document.getElementById('summary-text-box'),
+            btnCloseSummary: document.getElementById('btn-close-summary'),
+            btnWhatsapp: document.getElementById('btn-whatsapp'),
+            btnCopy: document.getElementById('btn-copy'),
+            btnResumeModal: document.getElementById('btn-resume-modal'),
+            
+            toast: document.getElementById('toast'),
+            toastMsg: document.getElementById('toast-msg')
+        };
+
+        const formatTime = (seconds) => {
+            if (!seconds || isNaN(seconds)) return "00:00";
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        };
+
+        const formatDuration = (seconds) => {
+            if (!seconds) return "0s";
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return m > 0 ? `${m}m ${s}s` : `${s}s`;
+        };
+
+        const showToast = (msg) => {
+            els.toastMsg.innerText = msg;
+            els.toast.classList.remove('opacity-0', '-translate-y-4');
+            els.toast.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                els.toast.classList.add('opacity-0', '-translate-y-4');
+                els.toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3000);
+        };
+
+        const updateProgressBar = () => {
+            const plan = WORKOUT_PLAN[state.selectedDay];
+            if (!plan) return;
+            const totalTasks = WARMUP_ROUTINE.length + plan.exercises.length;
+            const completedCount = Object.values(state.taskCompleted).filter(Boolean).length;
+            const percent = totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100);
+            els.progressBar.style.width = `${percent}%`;
+        };
+
+        const updateUIVisibility = () => {
+            // Hide everything first
+            els.btnStart.classList.add('d-none');
+            els.btnEnd.classList.add('d-none');
+            els.btnShare.classList.add('d-none');
+            els.btnResumeMain.classList.add('d-none');
+            els.btnReset.classList.add('d-none');
+            els.sessionBadge.classList.add('d-none');
+
+            // 1. Session Status View Logic
+            if (state.sessionStatus === 'idle') {
+                els.btnStart.classList.remove('d-none');
+                els.tabsContainer.querySelectorAll('button').forEach(b => b.classList.remove('opacity-50', 'cursor-not-allowed'));
+            } 
+            else if (state.sessionStatus === 'active') {
+                els.btnEnd.classList.remove('d-none');
+                els.btnReset.classList.remove('d-none');
+                
+                // Badge config
+                els.sessionBadge.classList.remove('d-none');
+                els.badgePingContainer.classList.remove('d-none');
+                els.badgeDot.classList.replace('bg-slate-400', 'bg-emerald-500');
+                els.badgeText.innerText = 'Active';
+                els.badgeText.classList.replace('text-slate-400', 'text-emerald-400');
+                els.sessionTimer.classList.replace('text-slate-400', 'text-emerald-400');
+                
+                els.tabsContainer.querySelectorAll('button').forEach(b => b.classList.add('opacity-50', 'cursor-not-allowed'));
+            } 
+            else if (state.sessionStatus === 'finished') {
+                // Main View when finished (if modal is closed)
+                els.btnShare.classList.remove('d-none');
+                els.btnResumeMain.classList.remove('d-none');
+                els.btnReset.classList.remove('d-none');
+                
+                // Badge config - frozen state
+                els.sessionBadge.classList.remove('d-none');
+                els.badgePingContainer.classList.add('d-none'); // Stop pinging
+                els.badgeDot.classList.replace('bg-emerald-500', 'bg-slate-400');
+                els.badgeText.innerText = 'Finished';
+                els.badgeText.classList.replace('text-emerald-400', 'text-slate-400');
+                els.sessionTimer.classList.replace('text-emerald-400', 'text-slate-400');
+                
+                els.tabsContainer.querySelectorAll('button').forEach(b => b.classList.add('opacity-50', 'cursor-not-allowed'));
+            }
+
+            // 2. Dialog State View Logic
+            if (state.isShareVisible) {
+                // Ensure data is up to date when showing
+                populateSummaryModal(); 
+                els.summaryModal.classList.remove('d-none');
+            } else {
+                els.summaryModal.classList.add('d-none');
+            }
+        };
+
+        const renderTabs = () => {
+            els.tabsContainer.innerHTML = '';
+            Object.keys(WORKOUT_PLAN).forEach(day => {
+                const btn = document.createElement('button');
+                const isSelected = state.selectedDay === day;
+                const isLocked = state.sessionStatus !== 'idle';
+                
+                btn.className = `px-5 py-2 rounded-full whitespace-nowrap text-sm font-semibold transition-all ${
+                    isSelected 
+                        ? 'bg-emerald-500 text-slate-900 shadow-md shadow-emerald-500/20' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`;
+                
+                btn.innerText = day;
+                btn.onclick = () => {
+                    if (!isLocked) {
+                        state.selectedDay = day;
+                        renderTabs();
+                        renderWorkout();
+                        saveState();
+                    }
+                };
+                els.tabsContainer.appendChild(btn);
+            });
+        };
+
+        const createExerciseHTML = (ex, isWarmup) => {
+            const time = state.taskTimes[ex.id] || 0;
+            const isActive = state.activeTaskId === ex.id;
+            const isComplete = state.taskCompleted[ex.id];
+            const log = state.logs[ex.id] || { weight: '', sets: '', repsL: '', repsR: '' };
+            
+            let cardClass = "relative overflow-hidden rounded-2xl transition-all duration-300 border mb-4 ";
+            if (isActive) cardClass += "active-task-card";
+            else if (isComplete) cardClass += "bg-slate-800/40 border-slate-700 opacity-60";
+            else cardClass += "bg-slate-800 border-slate-700";
+
+            return `
+                <div id="card-${ex.id}" class="${cardClass}">
+                    ${isActive ? '<div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>' : ''}
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1 pr-4">
+                                <h3 class="text-lg font-bold ${isComplete ? 'text-slate-400 line-through' : 'text-white'}">${ex.name}</h3>
+                                ${isWarmup 
+                                    ? `<p class="text-sm text-slate-400 mt-1">${ex.details}</p>`
+                                    : `<div class="mt-2 space-y-1">
+                                         <span class="text-sm font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-500/20"><i class="fas fa-redo-alt mr-1"></i> ${ex.sets}</span>
+                                         <p class="text-xs text-slate-400 flex items-center mt-2"><i class="fas fa-dumbbell w-4"></i> ${ex.equipment}</p>
+                                       </div>`
+                                }
+                            </div>
+                            <div class="flex flex-col items-end gap-2 shrink-0">
+                                <div id="timer-${ex.id}" class="font-mono text-2xl font-bold tracking-wider ${isActive ? 'text-emerald-400' : 'text-slate-300'}">${formatTime(time)}</div>
+                                <button onclick="openVideoModal('${ex.videoId}')" class="text-xs font-semibold flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors bg-red-400/10 hover:bg-red-400/20 px-2 py-1.5 rounded-lg border border-red-400/20">
+                                    <i class="fab fa-youtube text-sm"></i> Tutorial
+                                </button>
+                            </div>
+                        </div>
+
+                        ${!isWarmup ? `
+                        <div class="mt-4 pt-3 border-t border-slate-700/50 grid grid-cols-4 gap-2">
+                            <div class="flex flex-col">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Weight</label>
+                                <input type="number" inputmode="decimal" value="${log.weight}" onchange="updateLog('${ex.id}', 'weight', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="kg/lb">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Sets</label>
+                                <input type="number" inputmode="numeric" value="${log.sets}" onchange="updateLog('${ex.id}', 'sets', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Reps (L)</label>
+                                <input type="number" inputmode="numeric" value="${log.repsL}" onchange="updateLog('${ex.id}', 'repsL', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Reps (R)</label>
+                                <input type="number" inputmode="numeric" value="${log.repsR}" onchange="updateLog('${ex.id}', 'repsR', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                            <button onclick="toggleTimer('${ex.id}')" id="btn-toggle-${ex.id}" class="flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${
+                                isActive 
+                                    ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/30' 
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'
+                            }">
+                                ${isActive ? '<i class="fas fa-pause"></i> Pause' : `<i class="fas fa-play"></i> ${time > 0 ? 'Resume' : 'Start'}`}
+                            </button>
+                            <button onclick="toggleComplete('${ex.id}')" id="btn-check-${ex.id}" class="w-16 py-3 rounded-xl flex justify-center items-center transition-all ${
+                                isComplete 
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                    : 'bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-600'
+                            }">
+                                <i class="fas fa-check text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderWorkout = () => {
+            const plan = WORKOUT_PLAN[state.selectedDay];
+            if (!plan) return;
+
+            let html = `
+                <div class="mb-8 bg-gradient-to-br from-slate-800 to-slate-800/50 rounded-2xl p-5 border border-slate-700 shadow-xl">
+                    <h2 class="text-2xl font-black text-white mb-2 tracking-tight">${plan.focus}</h2>
+                    <div class="flex items-center gap-3 text-sm">
+                        <span class="flex items-center gap-1.5 text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded border border-emerald-500/20 font-bold">
+                            <i class="fas fa-map-marker-alt"></i> ${plan.location}
+                        </span>
+                        <span class="text-slate-400 font-medium">${plan.exercises.length + WARMUP_ROUTINE.length} Total Exercises</span>
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-4 flex items-center gap-2">
+                        <i class="fas fa-fire-flame-curved text-orange-500"></i> Dynamic Warm-up
+                    </h3>
+                    ${WARMUP_ROUTINE.map(ex => createExerciseHTML(ex, true)).join('')}
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-4 flex items-center gap-2">
+                        <i class="fas fa-dumbbell text-emerald-500"></i> Main Routine
+                    </h3>
+                    ${plan.exercises.map(ex => createExerciseHTML(ex, false)).join('')}
+                </div>
+            `;
+            els.mainContent.innerHTML = html;
+        };
+
+        // Calculate exact total seconds regardless of active/paused state
+        const getTotalSessionSeconds = () => {
+            let total = state.accumulatedTime;
+            if (state.sessionStatus === 'active' && state.sessionStartTime) {
+                total += Math.floor((Date.now() - state.sessionStartTime) / 1000);
+            }
+            return total;
+        };
+
+        const updateSessionTimerUI = () => {
+            const totalSeconds = getTotalSessionSeconds();
+            const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (totalSeconds % 60).toString().padStart(2, '0');
+            
+            if (h > 0) els.sessionTimer.innerText = `${h}:${m}:${s}`;
+            else els.sessionTimer.innerText = `${m}:${s}`;
+        };
+
+        const startGlobalTimer = () => {
+            if (sessionInterval) clearInterval(sessionInterval);
+            sessionInterval = setInterval(updateSessionTimerUI, 1000);
+            updateSessionTimerUI();
+        };
+
+        const startTaskTimerInterval = () => {
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                if (state.activeTaskId) {
+                    state.taskTimes[state.activeTaskId] = (state.taskTimes[state.activeTaskId] || 0) + 1;
+                    const timeEl = document.getElementById(`timer-${state.activeTaskId}`);
+                    if (timeEl) timeEl.innerText = formatTime(state.taskTimes[state.activeTaskId]);
+                }
+            }, 1000);
+        };
+
+        const stopTaskTimerInterval = () => {
+            if (state.timerInterval) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+            }
+        };
+
+        window.updateLog = (taskId, field, value) => {
+            if (!state.logs[taskId]) state.logs[taskId] = { weight: '', sets: '', repsL: '', repsR: '' };
+            state.logs[taskId][field] = value;
+            saveState();
+        };
+
+        window.toggleTimer = (taskId) => {
+            // Auto-start or auto-resume if user directly interacts with a task
+            if (state.sessionStatus === 'idle') handleStart();
+            else if (state.sessionStatus === 'finished') handleResume();
+
+            if (state.activeTaskId === taskId) {
+                state.activeTaskId = null;
+                stopTaskTimerInterval();
+            } else {
+                state.activeTaskId = taskId;
+                startTaskTimerInterval();
+            }
+            saveState();
+            renderWorkout();
+        };
+
+        window.toggleComplete = (taskId) => {
+            if (state.sessionStatus === 'idle') handleStart();
+            else if (state.sessionStatus === 'finished') handleResume();
+            
+            if (state.activeTaskId === taskId) {
+                state.activeTaskId = null;
+                stopTaskTimerInterval();
+            }
+            
+            state.taskCompleted[taskId] = !state.taskCompleted[taskId];
+            saveState();
+            updateProgressBar();
+            renderWorkout();
+        };
+
+        window.openVideoModal = (videoId) => {
+            els.videoIframe.src = `https://www.youtube.com/embed/${videoId}`;
+            els.fallbackYoutubeLink.href = `https://www.youtube.com/watch?v=${videoId}`;
+            els.videoModal.classList.remove('d-none');
+        };
+
+        els.btnCloseVideo.onclick = () => {
+            els.videoModal.classList.add('d-none');
+            els.videoIframe.src = ''; 
+        };
+
+        // --- NEW DECOUPLED EVENT HANDLERS ---
+        
+        const handleStart = () => {
+            state.sessionStatus = 'active';
+            state.sessionStartTime = Date.now();
+            
+            startGlobalTimer();
+            updateUIVisibility();
+            renderTabs(); 
+            saveState();
+        };
+        els.btnStart.onclick = handleStart;
+
+        const handleFinish = () => {
+            // 1. Set Session to Finished
+            state.sessionStatus = 'finished';
+            
+            // Lock in the accumulated time and stop global timer
+            if (state.sessionStartTime) {
+                state.accumulatedTime += Math.floor((Date.now() - state.sessionStartTime) / 1000);
+                state.sessionStartTime = null; 
+            }
+            if (sessionInterval) clearInterval(sessionInterval);
+            
+            // Stop any active task timers
+            if (state.activeTaskId) {
+                state.activeTaskId = null;
+                stopTaskTimerInterval();
+                renderWorkout();
+            }
+            
+            // 2. Automatically Pop Modal
+            state.isShareVisible = true;
+            
+            updateUIVisibility();
+            saveState();
+        };
+        els.btnEnd.onclick = handleFinish;
+
+        const handleCloseModal = () => {
+            // ONLY modifies the dialog state
+            state.isShareVisible = false;
+            updateUIVisibility();
+            saveState();
+        };
+        els.btnCloseSummary.onclick = handleCloseModal;
+
+        const handleResume = () => {
+            // Return to Active AND hide modal
+            state.sessionStatus = 'active';
+            state.isShareVisible = false;
+            
+            // Restart tracking time
+            state.sessionStartTime = Date.now();
+            startGlobalTimer();
+            
+            updateUIVisibility();
+            saveState();
+        };
+        // Bind to both resume buttons (inside modal and on main UI)
+        els.btnResumeModal.onclick = handleResume;
+        els.btnResumeMain.onclick = handleResume;
+
+        const handleShareLater = () => {
+            // ONLY pops modal back up
+            state.isShareVisible = true;
+            updateUIVisibility();
+            saveState();
+        };
+        els.btnShare.onclick = handleShareLater;
+
+
+        const generateSummaryText = () => {
+            const totalSeconds = getTotalSessionSeconds();
+            const plan = WORKOUT_PLAN[state.selectedDay];
+            
+            let text = `🏋️ *Workout Summary: ${state.selectedDay}* (${plan.location})\n`;
+            text += `🕒 *Total Time:* ${formatDuration(totalSeconds)}\n\n`;
+            
+            text += `🔥 *Warm-up*\n`;
+            WARMUP_ROUTINE.forEach(ex => {
+                const time = state.taskTimes[ex.id] || 0;
+                const status = state.taskCompleted[ex.id] ? '✅' : (time > 0 ? '⏳' : '❌');
+                text += `${status} ${ex.name}: ${formatDuration(time)}\n`;
+            });
+
+            text += `\n💪 *Main Workout: ${plan.focus}*\n`;
+            plan.exercises.forEach(ex => {
+                const time = state.taskTimes[ex.id] || 0;
+                const status = state.taskCompleted[ex.id] ? '✅' : (time > 0 ? '⏳' : '❌');
+                
+                let logStr = '';
+                if (state.logs[ex.id]) {
+                    const { weight, sets, repsL, repsR } = state.logs[ex.id];
+                    let details = [];
+                    if (weight) details.push(`${weight} lb/kg`);
+                    if (sets) details.push(`${sets} sets`);
+                    if (repsL || repsR) {
+                        if (repsL && repsR) details.push(`${repsL}L / ${repsR}R reps`);
+                        else if (repsL) details.push(`${repsL} reps`);
+                        else if (repsR) details.push(`${repsR} reps`);
+                    }
+                    if (details.length > 0) logStr = ` [${details.join(' | ')}]`;
+                }
+                text += `${status} ${ex.name}: ${formatDuration(time)}${logStr}\n`;
+            });
+
+            text += `\nGreat job today! Keep pushing! 🚀`;
+            return text;
+        };
+
+        const populateSummaryModal = () => {
+            els.summaryTime.innerText = formatDuration(getTotalSessionSeconds());
+            els.summaryBox.innerText = generateSummaryText();
+        };
+
+        els.btnWhatsapp.onclick = () => {
+            const text = encodeURIComponent(generateSummaryText());
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        };
+
+        els.btnCopy.onclick = async () => {
+            const text = generateSummaryText();
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Summary copied to clipboard!');
+            } catch (err) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+                showToast('Summary copied to clipboard!');
+            }
+        };
+
+        els.btnReset.onclick = () => { els.confirmModal.classList.remove('d-none'); };
+        els.btnCancelReset.onclick = () => { els.confirmModal.classList.add('d-none'); };
+
+        els.btnConfirmReset.onclick = () => {
+            stopTaskTimerInterval();
+            if (sessionInterval) clearInterval(sessionInterval);
+            
+            state = {
+                selectedDay: state.selectedDay,
+                sessionStatus: 'idle',
+                isShareVisible: false,
+                sessionStartTime: null,
+                accumulatedTime: 0,
+                activeTaskId: null,
+                taskTimes: {},
+                taskCompleted: {},
+                logs: {},
+                timerInterval: null
+            };
+            
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('recomp_tracker_data');
+            
+            els.sessionTimer.innerText = "00:00";
+            
+            updateUIVisibility();
+            updateProgressBar();
+            renderTabs();
+            renderWorkout();
+            els.confirmModal.classList.add('d-none');
+            showToast('Tracker reset successfully');
+        };
+
+        // Initialize App
+        loadState();
+        updateUIVisibility();
+        renderTabs();
+        renderWorkout();
+        updateProgressBar();
+    </script>
+</body>
+</html>
