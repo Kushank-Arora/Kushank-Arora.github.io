@@ -697,7 +697,7 @@
         };
 
         window.openVideoModal = (videoId) => {
-            els.videoIframe.src = `https://www.youtube.com/embed/${videoId}`;
+            els.videoIframe.src = `https://www.youtube.com/embed/${videoId}?loop=1&playlist=${videoId}`;
             els.fallbackYoutubeLink.href = `https://www.youtube.com/watch?v=${videoId}`;
             els.videoModal.classList.remove('d-none');
         };
