@@ -65,23 +65,29 @@
     <!-- Fixed Header -->
     <header class="sticky top-0 z-30 glass-panel">
         <div class="max-w-2xl mx-auto px-4 py-4">
-            <div class="flex justify-between items-center mb-4">
-                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+            <div class="flex justify-between items-start mb-4">
+                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2 mt-1">
                     <i class="fas fa-fire text-emerald-500"></i>
                     Recomp<span class="text-emerald-500">Tracker</span>
                 </h1>
                 
-                <!-- Session Badge with Global Timer -->
-                <div id="session-badge" class="d-none flex items-center bg-slate-800 rounded-full border border-slate-700 overflow-hidden transition-colors duration-300">
-                    <div class="flex items-center gap-2 px-3 py-1.5" id="session-badge-status">
-                        <span class="relative flex h-2.5 w-2.5" id="session-badge-ping-container">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" id="session-badge-ping"></span>
-                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" id="session-badge-dot"></span>
-                        </span>
-                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider" id="session-badge-text">Active</span>
+                <!-- Session Badge with Global Timer & Start Time -->
+                <div class="flex flex-col items-end">
+                    <div id="session-badge" class="d-none flex items-center bg-slate-800 rounded-full border border-slate-700 overflow-hidden transition-colors duration-300">
+                        <div class="flex items-center gap-2 px-3 py-1.5" id="session-badge-status">
+                            <span class="relative flex h-2.5 w-2.5" id="session-badge-ping-container">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" id="session-badge-ping"></span>
+                              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" id="session-badge-dot"></span>
+                            </span>
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider" id="session-badge-text">Active</span>
+                        </div>
+                        <div class="bg-slate-900/50 px-3 py-1.5 border-l border-slate-700">
+                            <span id="session-timer" class="text-sm font-mono font-bold text-slate-300">00:00</span>
+                        </div>
                     </div>
-                    <div class="bg-slate-900/50 px-3 py-1.5 border-l border-slate-700">
-                        <span id="session-timer" class="text-sm font-mono font-bold text-slate-300">00:00</span>
+                    <!-- New Start Time Display -->
+                    <div id="session-time-info" class="d-none text-[10px] text-slate-400 font-mono mt-1.5 pr-2">
+                        Started: <span id="ui-start-time" class="text-slate-300 font-semibold"></span>
                     </div>
                 </div>
             </div>
@@ -191,7 +197,6 @@
                     <i class="far fa-copy text-lg"></i> Copy to Clipboard
                 </button>
                 <div class="flex gap-3 mt-2 border-t border-slate-700 pt-5">
-                    <!-- Updated Resume Logic applied to this button too -->
                     <button id="btn-resume-modal" class="flex-1 py-3 bg-transparent border border-slate-600 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-all">
                         Wait, Resume Session
                     </button>
@@ -283,11 +288,13 @@
         let state = {
             selectedDay: getTodayStr(),
             
-            // 1. Decoupled State Variables
+            // Decoupled State Variables
             sessionStatus: 'idle', // 'idle' | 'active' | 'finished'
             isShareVisible: false, // Dialog state
             
-            // Timer state
+            // Time tracking
+            firstStartTime: null,   // Exact datetime string when workout FIRST started
+            finishTime: null,       // Exact datetime string when workout finished
             sessionStartTime: null, // Time since the start of the CURRENT active burst
             accumulatedTime: 0,     // Total paused/finished time safely accumulated
 
@@ -299,7 +306,7 @@
         };
         
         let sessionInterval = null; 
-        const STORAGE_KEY = 'recomp_tracker_data_v2';
+        const STORAGE_KEY = 'recomp_tracker_data_v3';
 
         const saveState = () => {
             const dataToSave = {
@@ -308,6 +315,8 @@
                     selectedDay: state.selectedDay,
                     sessionStatus: state.sessionStatus,
                     isShareVisible: state.isShareVisible,
+                    firstStartTime: state.firstStartTime,
+                    finishTime: state.finishTime,
                     sessionStartTime: state.sessionStartTime,
                     accumulatedTime: state.accumulatedTime,
                     taskTimes: state.taskTimes,
@@ -320,7 +329,7 @@
 
         const loadState = () => {
             const saved = localStorage.getItem(STORAGE_KEY);
-            // Backward compatibility for old versions if needed
+            const legacySavedV2 = localStorage.getItem('recomp_tracker_data_v2');
             const legacySaved = localStorage.getItem('recomp_tracker_data');
             
             const processLoad = (parsed) => {
@@ -328,28 +337,22 @@
                     state = { ...state, ...parsed.state };
                     state.activeTaskId = null; // Prevent auto-starting task timers on reload
                     
-                    // Legacy migration from isSessionActive boolean
-                    if (parsed.state.isSessionActive !== undefined) {
-                        state.sessionStatus = parsed.state.isSessionActive ? 'active' : 'idle';
-                        delete state.isSessionActive;
-                        state.isShareVisible = false;
-                        state.accumulatedTime = 0;
-                    }
-
                     if (state.sessionStatus === 'active') {
                         startGlobalTimer();
                     } else if (state.sessionStatus === 'finished') {
-                        // Keep global timer stopped, just calculate the static UI once
                         updateSessionTimerUI();
                     }
                 } else {
                     localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem('recomp_tracker_data_v2');
                     localStorage.removeItem('recomp_tracker_data');
                 }
             };
 
             if (saved) {
                 try { processLoad(JSON.parse(saved)); } catch(e) { console.error(e); }
+            } else if (legacySavedV2) {
+                try { processLoad(JSON.parse(legacySavedV2)); localStorage.removeItem('recomp_tracker_data_v2'); } catch(e) { console.error(e); }
             } else if (legacySaved) {
                 try { processLoad(JSON.parse(legacySaved)); localStorage.removeItem('recomp_tracker_data'); } catch(e) { console.error(e); }
             }
@@ -361,6 +364,8 @@
             mainContent: document.getElementById('main-content'),
             progressBar: document.getElementById('progress-bar'),
             sessionBadge: document.getElementById('session-badge'),
+            sessionTimeInfo: document.getElementById('session-time-info'),
+            uiStartTime: document.getElementById('ui-start-time'),
             sessionTimer: document.getElementById('session-timer'),
             badgeStatus: document.getElementById('session-badge-status'),
             badgePingContainer: document.getElementById('session-badge-ping-container'),
@@ -410,6 +415,20 @@
             return m > 0 ? `${m}m ${s}s` : `${s}s`;
         };
 
+        // Formats the exact date for shareable summary
+        const formatDateTimeFull = (isoString) => {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+        };
+
+        // Formats just the time for the top UI badge
+        const formatTimeOnly = (isoString) => {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleTimeString(undefined, { hour: '2-digit', minute:'2-digit' });
+        };
+
         const showToast = (msg) => {
             els.toastMsg.innerText = msg;
             els.toast.classList.remove('opacity-0', '-translate-y-4');
@@ -437,6 +456,13 @@
             els.btnResumeMain.classList.add('d-none');
             els.btnReset.classList.add('d-none');
             els.sessionBadge.classList.add('d-none');
+            els.sessionTimeInfo.classList.add('d-none');
+
+            // Toggle Started Time UI
+            if (state.firstStartTime) {
+                els.sessionTimeInfo.classList.remove('d-none');
+                els.uiStartTime.innerText = formatTimeOnly(state.firstStartTime);
+            }
 
             // 1. Session Status View Logic
             if (state.sessionStatus === 'idle') {
@@ -458,14 +484,13 @@
                 els.tabsContainer.querySelectorAll('button').forEach(b => b.classList.add('opacity-50', 'cursor-not-allowed'));
             } 
             else if (state.sessionStatus === 'finished') {
-                // Main View when finished (if modal is closed)
                 els.btnShare.classList.remove('d-none');
                 els.btnResumeMain.classList.remove('d-none');
                 els.btnReset.classList.remove('d-none');
                 
                 // Badge config - frozen state
                 els.sessionBadge.classList.remove('d-none');
-                els.badgePingContainer.classList.add('d-none'); // Stop pinging
+                els.badgePingContainer.classList.add('d-none');
                 els.badgeDot.classList.replace('bg-emerald-500', 'bg-slate-400');
                 els.badgeText.innerText = 'Finished';
                 els.badgeText.classList.replace('text-emerald-400', 'text-slate-400');
@@ -476,7 +501,6 @@
 
             // 2. Dialog State View Logic
             if (state.isShareVisible) {
-                // Ensure data is up to date when showing
                 populateSummaryModal(); 
                 els.summaryModal.classList.remove('d-none');
             } else {
@@ -616,7 +640,6 @@
             els.mainContent.innerHTML = html;
         };
 
-        // Calculate exact total seconds regardless of active/paused state
         const getTotalSessionSeconds = () => {
             let total = state.accumulatedTime;
             if (state.sessionStatus === 'active' && state.sessionStartTime) {
@@ -666,7 +689,6 @@
         };
 
         window.toggleTimer = (taskId) => {
-            // Auto-start or auto-resume if user directly interacts with a task
             if (state.sessionStatus === 'idle') handleStart();
             else if (state.sessionStatus === 'finished') handleResume();
 
@@ -706,10 +728,11 @@
             els.videoModal.classList.add('d-none');
             els.videoIframe.src = ''; 
         };
-
-        // --- NEW DECOUPLED EVENT HANDLERS ---
         
         const handleStart = () => {
+            if (!state.firstStartTime) {
+                state.firstStartTime = new Date().toISOString();
+            }
             state.sessionStatus = 'active';
             state.sessionStartTime = Date.now();
             
@@ -721,24 +744,21 @@
         els.btnStart.onclick = handleStart;
 
         const handleFinish = () => {
-            // 1. Set Session to Finished
             state.sessionStatus = 'finished';
+            state.finishTime = new Date().toISOString();
             
-            // Lock in the accumulated time and stop global timer
             if (state.sessionStartTime) {
                 state.accumulatedTime += Math.floor((Date.now() - state.sessionStartTime) / 1000);
                 state.sessionStartTime = null; 
             }
             if (sessionInterval) clearInterval(sessionInterval);
             
-            // Stop any active task timers
             if (state.activeTaskId) {
                 state.activeTaskId = null;
                 stopTaskTimerInterval();
                 renderWorkout();
             }
             
-            // 2. Automatically Pop Modal
             state.isShareVisible = true;
             
             updateUIVisibility();
@@ -747,7 +767,6 @@
         els.btnEnd.onclick = handleFinish;
 
         const handleCloseModal = () => {
-            // ONLY modifies the dialog state
             state.isShareVisible = false;
             updateUIVisibility();
             saveState();
@@ -755,23 +774,19 @@
         els.btnCloseSummary.onclick = handleCloseModal;
 
         const handleResume = () => {
-            // Return to Active AND hide modal
             state.sessionStatus = 'active';
             state.isShareVisible = false;
             
-            // Restart tracking time
             state.sessionStartTime = Date.now();
             startGlobalTimer();
             
             updateUIVisibility();
             saveState();
         };
-        // Bind to both resume buttons (inside modal and on main UI)
         els.btnResumeModal.onclick = handleResume;
         els.btnResumeMain.onclick = handleResume;
 
         const handleShareLater = () => {
-            // ONLY pops modal back up
             state.isShareVisible = true;
             updateUIVisibility();
             saveState();
@@ -784,7 +799,9 @@
             const plan = WORKOUT_PLAN[state.selectedDay];
             
             let text = `🏋️ *Workout Summary: ${state.selectedDay}* (${plan.location})\n`;
-            text += `🕒 *Total Time:* ${formatDuration(totalSeconds)}\n\n`;
+            if (state.firstStartTime) text += `📅 *Started:* ${formatDateTimeFull(state.firstStartTime)}\n`;
+            if (state.finishTime) text += `🏁 *Finished:* ${formatDateTimeFull(state.finishTime)}\n`;
+            text += `🕒 *Total Active Time:* ${formatDuration(totalSeconds)}\n\n`;
             
             text += `🔥 *Warm-up*\n`;
             WARMUP_ROUTINE.forEach(ex => {
@@ -851,23 +868,21 @@
             stopTaskTimerInterval();
             if (sessionInterval) clearInterval(sessionInterval);
             
-            // Keep the logs while resetting active timers and completion statuses
             state = {
                 selectedDay: state.selectedDay,
                 sessionStatus: 'idle',
                 isShareVisible: false,
+                firstStartTime: null,
+                finishTime: null,
                 sessionStartTime: null,
                 accumulatedTime: 0,
                 activeTaskId: null,
                 taskTimes: {},
                 taskCompleted: {},
-                logs: state.logs, // <-- Preserves weights, sets, and reps
+                logs: state.logs, 
                 timerInterval: null
             };
             
-            // Clean up old legacy keys if necessary, but importantly use saveState() 
-            // instead of removing the current STORAGE_KEY.
-            localStorage.removeItem('recomp_tracker_data');
             saveState();
             
             els.sessionTimer.innerText = "00:00";
