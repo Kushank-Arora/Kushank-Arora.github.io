@@ -258,6 +258,34 @@
         </div>
     </div>
 
+    <!-- History Detail Modal Overlay -->
+    <div id="history-detail-modal" class="d-none fixed inset-0 z-[115] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md overflow-y-auto pt-20 pb-20">
+        <div class="w-full max-w-lg bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 m-auto relative">
+            <button id="btn-close-history-detail" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+
+            <div class="text-center mb-6 mt-4">
+                <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/50">
+                    <i class="fas fa-file-alt text-3xl text-blue-400"></i>
+                </div>
+                <h2 class="text-2xl font-black text-white mb-1">Workout Record</h2>
+                <p id="history-detail-date" class="text-slate-400 text-sm"></p>
+            </div>
+
+            <div id="history-detail-text-box" class="bg-slate-900 rounded-xl p-4 mb-6 max-h-60 overflow-y-auto border border-slate-700 text-xs sm:text-sm font-mono whitespace-pre-wrap text-slate-300 leading-relaxed"></div>
+
+            <div class="flex flex-col gap-3">
+                <button id="btn-history-whatsapp" class="w-full py-4 bg-[#25D366] hover:bg-[#1ebd5a] text-white font-bold rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg shadow-[#25D366]/20 active:scale-95">
+                    <i class="fab fa-whatsapp text-xl"></i> Send to WhatsApp
+                </button>
+                <button id="btn-history-copy" class="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl flex justify-center items-center gap-2 transition-all active:scale-95">
+                    <i class="far fa-copy text-lg"></i> Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[120] bg-slate-800 text-emerald-400 px-6 py-3 rounded-full font-bold shadow-2xl border border-emerald-500/30 flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4">
         <i class="fas fa-check-circle"></i> <span id="toast-msg">Success</span>
@@ -410,6 +438,14 @@
             btnWhatsapp: document.getElementById('btn-whatsapp'),
             btnCopy: document.getElementById('btn-copy'),
             btnResumeModal: document.getElementById('btn-resume-modal'),
+
+            // History Detail Modal
+            historyDetailModal: document.getElementById('history-detail-modal'),
+            btnCloseHistoryDetail: document.getElementById('btn-close-history-detail'),
+            historyDetailDate: document.getElementById('history-detail-date'),
+            historyDetailTextBox: document.getElementById('history-detail-text-box'),
+            btnHistoryWhatsapp: document.getElementById('btn-history-whatsapp'),
+            btnHistoryCopy: document.getElementById('btn-history-copy'),
             
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toast-msg')
@@ -773,7 +809,7 @@
                     const dateObj = new Date(log.timestamp);
                     const isToday = dateObj.toDateString() === new Date().toDateString();
                     html += `
-                        <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 flex justify-between items-center transition-all hover:border-slate-600">
+                        <div onclick="openHistoryDetail('${log.id}')" class="bg-slate-800 rounded-xl p-4 border border-slate-700 flex justify-between items-center transition-all hover:border-slate-600 hover:bg-slate-700/50 cursor-pointer">
                             <div>
                                 <div class="flex items-center gap-2">
                                     <h4 class="font-bold text-white">${log.day}</h4>
@@ -783,7 +819,7 @@
                             </div>
                             <div class="flex items-center gap-4">
                                 <span class="font-mono text-emerald-400 font-bold">${formatTime(log.duration)}</span>
-                                <button onclick="confirmDeleteHistory('${log.id}')" class="w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors">
+                                <button onclick="event.stopPropagation(); confirmDeleteHistory('${log.id}')" class="w-8 h-8 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition-colors">
                                     <i class="fas fa-trash-alt text-sm"></i>
                                 </button>
                             </div>
@@ -1089,6 +1125,7 @@
             const totalTasks = (plan ? plan.exercises.length : 0) + WARMUP_ROUTINE.length;
             const completedCount = Object.values(state.taskCompleted).filter(Boolean).length;
             const duration = getTotalSessionSeconds();
+            const summaryText = generateSummaryText();
 
             const sessionRecord = {
                 id: state.sessionId,
@@ -1096,7 +1133,8 @@
                 day: state.selectedDay,
                 duration: duration,
                 completedTasks: completedCount,
-                totalTasks: totalTasks
+                totalTasks: totalTasks,
+                summaryText: summaryText
             };
 
             const existingIdx = historyData.findIndex(h => h.id === state.sessionId);
@@ -1289,6 +1327,44 @@
                 textArea.remove();
                 showToast('Summary copied to clipboard!');
             }
+        };
+
+        // Open specific history log details
+        window.openHistoryDetail = (id) => {
+            const log = historyData.find(h => h.id === id);
+            if (!log) return;
+            
+            const dateObj = new Date(log.timestamp);
+            els.historyDetailDate.innerText = dateObj.toLocaleDateString(undefined, {weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute:'2-digit'});
+            
+            const textContent = log.summaryText || "Detailed text summary is not available for this older session.";
+            els.historyDetailTextBox.innerText = textContent;
+            
+            els.btnHistoryWhatsapp.onclick = () => {
+                const text = encodeURIComponent(textContent);
+                window.open(`https://wa.me/?text=${text}`, '_blank');
+            };
+            
+            els.btnHistoryCopy.onclick = async () => {
+                try {
+                    await navigator.clipboard.writeText(textContent);
+                    showToast('Log copied to clipboard!');
+                } catch (err) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = textContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    textArea.remove();
+                    showToast('Log copied to clipboard!');
+                }
+            };
+            
+            els.historyDetailModal.classList.remove('d-none');
+        };
+
+        els.btnCloseHistoryDetail.onclick = () => {
+            els.historyDetailModal.classList.add('d-none');
         };
 
         // Reset Daily Progress
