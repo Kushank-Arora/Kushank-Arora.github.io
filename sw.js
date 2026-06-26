@@ -4,6 +4,7 @@ const filesToCache = [
   './index.html',
   './logo.png',
   './manifest.json'
+  './config.js'
 ];
 
 // Install Service Worker and cache essential files

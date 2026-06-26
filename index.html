@@ -3,25 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Link to your manifest -->
-    <link rel="manifest" href="manifest.json">
-    <!-- Theme color for the browser status bar -->
     <meta name="theme-color" content="#4A90E2">
-
-    <!-- Service Worker Registration Script -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(registration => console.log('Service Worker registered successfully!'))
-            .catch(err => console.log('Service Worker registration failed: ', err));
-        });
-      }
-    </script>
-    <title>Body Recomp Tracker</title>
+    <title>Dynamic Recomp Tracker</title>
     
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -66,7 +53,6 @@
             animation: subtlePulse 2s infinite;
         }
 
-        /* Hide Number Input Spinners */
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
@@ -76,7 +62,6 @@
             -moz-appearance: textfield;
         }
 
-        /* D3 Chart Tooltips & Styles */
         .chart-tooltip {
             position: absolute;
             text-align: center;
@@ -99,7 +84,6 @@
 </head>
 <body class="pb-32">
 
-    <!-- Fixed Header -->
     <header class="sticky top-0 z-30 glass-panel">
         <div class="max-w-2xl mx-auto px-4 py-4">
             <div class="flex justify-between items-start mb-4">
@@ -108,7 +92,6 @@
                     Recomp<span class="text-emerald-500">Tracker</span>
                 </h1>
                 
-                <!-- Session Badge with Global Timer & Start Time -->
                 <div class="flex flex-col items-end">
                     <div id="session-badge" class="d-none flex items-center bg-slate-800 rounded-full border border-slate-700 overflow-hidden transition-colors duration-300">
                         <div class="flex items-center gap-2 px-3 py-1.5" id="session-badge-status">
@@ -122,57 +105,49 @@
                             <span id="session-timer" class="text-sm font-mono font-bold text-slate-300">00:00</span>
                         </div>
                     </div>
-                    <!-- New Start Time Display -->
                     <div id="session-time-info" class="d-none text-[10px] text-slate-400 font-mono mt-1.5 pr-2">
                         Started: <span id="ui-start-time" class="text-slate-300 font-semibold"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- Day Tabs -->
             <div id="tabs-container" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar"></div>
         </div>
-        <!-- Progress Bar -->
         <div class="h-1 bg-slate-800 w-full" id="progress-bar-container">
             <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main id="main-content" class="max-w-2xl mx-auto px-4 py-6 relative"></main>
+    <main id="main-content" class="max-w-2xl mx-auto px-4 py-6 relative">
+        <div id="loading-state" class="flex flex-col items-center justify-center py-20 text-slate-400">
+            <i class="fas fa-circle-notch fa-spin text-4xl text-emerald-500 mb-4"></i>
+            <p class="font-semibold tracking-wide animate-pulse">Loading Configuration...</p>
+        </div>
+    </main>
     
-    <!-- Tooltip element for charts -->
     <div id="chart-tooltip" class="chart-tooltip"></div>
 
-    <!-- Bottom Action Bar -->
-    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-700/50 p-4 z-20 transition-transform duration-300">
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-700/50 p-4 z-20 transition-transform duration-300 translate-y-[150%]">
         <div class="max-w-2xl mx-auto flex gap-3" id="bottom-bar-content">
-            <!-- Idle State Button -->
             <button id="btn-start-session" class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
                 Start Workout
             </button>
-            
-            <!-- Active State Button -->
             <button id="btn-end-session" class="d-none flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 flex justify-center items-center gap-2 active:scale-95">
                 <i class="fas fa-flag-checkered"></i> Finish Session
             </button>
-
-            <!-- Finished State Buttons -->
             <button id="btn-share-session" class="d-none flex-1 py-4 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 active:scale-95">
                 <i class="fas fa-share-nodes"></i> Share
             </button>
             <button id="btn-resume-main" class="d-none flex-1 py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-lg transition-all flex justify-center items-center gap-2 active:scale-95 border border-slate-600">
                 <i class="fas fa-play text-sm"></i> Resume
             </button>
-
-            <!-- Global Reset Button -->
             <button id="btn-reset-session" class="d-none px-6 py-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-xl transition-all active:scale-95">
                 <i class="fas fa-rotate-right"></i>
             </button>
         </div>
     </div>
 
-    <!-- Hybrid Video Modal Overlay -->
+    <!-- Video Modal -->
     <div id="video-modal" class="d-none fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm transition-opacity">
         <div class="w-full max-w-4xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col">
             <div class="flex justify-between items-center p-4 border-b border-slate-700">
@@ -195,7 +170,7 @@
         </div>
     </div>
 
-    <!-- Reset Confirm Dialog Overlay -->
+    <!-- Reset Confirm -->
     <div id="confirm-modal" class="d-none fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
         <div class="bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-700">
             <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 mx-auto border border-red-500/50">
@@ -210,7 +185,7 @@
         </div>
     </div>
 
-    <!-- Delete History Confirm Dialog Overlay -->
+    <!-- Delete History Confirm -->
     <div id="delete-history-modal" class="d-none fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
         <div class="bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-700">
             <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 mx-auto border border-red-500/50">
@@ -225,7 +200,7 @@
         </div>
     </div>
 
-    <!-- Summary Modal Overlay -->
+    <!-- Summary Modal -->
     <div id="summary-modal" class="d-none fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md overflow-y-auto pt-20 pb-20">
         <div class="w-full max-w-lg bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 m-auto relative">
             <button id="btn-close-summary" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors">
@@ -258,7 +233,7 @@
         </div>
     </div>
 
-    <!-- History Detail Modal Overlay -->
+    <!-- History Detail Modal -->
     <div id="history-detail-modal" class="d-none fixed inset-0 z-[115] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md overflow-y-auto pt-20 pb-20">
         <div class="w-full max-w-lg bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 m-auto relative">
             <button id="btn-close-history-detail" class="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors">
@@ -292,94 +267,41 @@
     </div>
 
     <script>
-        const WARMUP_ROUTINE = [
-            { id: 'w1', name: 'Jumping Jacks', details: '60s. Increases heart rate.', videoId: 'uLVt6u15L98' },
-            { id: 'w2', name: 'Arm Circles & Swings', details: '30s each. Preps shoulders.', videoId: '3STTSi_jdHk' },
-            { id: 'w3', name: 'Cat-Cow Stretch', details: '10 reps. Loosens spine.', videoId: 'LIVJZZyZ2qM' },
-            { id: 'w4', name: 'World\'s Greatest Stretch', details: '5 reps/side. Opens hips.', videoId: '7XheaZERvBQ' },
-            { id: 'w5', name: 'Bodyweight Squats', details: '15 reps. Primes joints.', videoId: 'm0GcZ24pK6k' }
-        ];
+        let WARMUP_ROUTINE = [];
+        let WORKOUT_PLAN = {};
 
-        const WORKOUT_PLAN = {
-            Monday: {
-                location: 'Gym 1',
-                focus: 'Upper Body Strength & Hypertrophy',
-                exercises: [
-                    { id: 'm1', name: 'Barbell Bench Press', sets: '4 sets of 6-8 reps', equipment: 'Eleiko Rack & Bench', videoId: 'hWbUlkb5Ms4' },
-                    { id: 'm2', name: 'TRX Inverted Rows', sets: '3 sets to failure', equipment: 'TRX Suspension Trainers', videoId: 'FyXAZW5zDhw' },
-                    { id: 'm3', name: 'Dumbbell Seated OHP', sets: '3 sets of 8-10 reps', equipment: 'Dumbbells & Bench', videoId: 'rO_iEImwHyo' },
-                    { id: 'm4', name: 'Keiser Cable Chest Flyes', sets: '3 sets of 12-15 reps', equipment: 'Keiser Machine', videoId: 'I-Ue34qLxc4' },
-                    { id: 'm5', name: 'Dumbbell Bicep Curls', sets: '3 sets of 10-12 reps', equipment: 'Dumbbells', videoId: 'cBSD6mQIPQk' },
-                    { id: 'm6', name: 'Tricep Pushdowns', sets: '3 sets of 12-15 reps', equipment: 'Keiser Machine (Rope)', videoId: 'NvZKjiZ8NYc' }
-                ]
-            },
-            Tuesday: {
-                location: 'Gym 2',
-                focus: 'Lower Body Strength & Core',
-                exercises: [
-                    { id: 't1', name: 'Barbell Back Squats', sets: '4 sets of 6-8 reps', equipment: 'Barbell & Squat Rack', videoId: 'gcNh17Ckjgg' },
-                    { id: 't2', name: 'Kettlebell Goblet Squats', sets: '3 sets of 10-12 reps', equipment: 'Kettlebells', videoId: 'QilYZ20kVfM' },
-                    { id: 't3', name: 'Leg Extensions', sets: '3 sets of 12-15 reps', equipment: 'BLK BOX Leg Extension', videoId: 'uM86QE59Tgc' },
-                    { id: 't4', name: 'Leg Curls', sets: '3 sets of 12-15 reps', equipment: 'BLK BOX Leg Curl', videoId: 't9sTSr-JYSs' },
-                    { id: 't5', name: 'Keiser Cable Crunches', sets: '3 sets of 15 reps', equipment: 'Keiser Machine (Rope)', videoId: 'CDO29I7PCoc' }
-                ]
-            },
-            Wednesday: {
-                location: 'Gym 1',
-                focus: 'Full Body HIIT Conditioning',
-                exercises: [
-                    { id: 'w1', name: 'Concept2 SkiErg', sets: '5 rounds x 250m', equipment: 'Concept2 SkiErg', videoId: 'B0lIgT5PHc8' },
-                    { id: 'w2', name: 'Kettlebell Swings', sets: '4 sets of 15 reps', equipment: 'Kettlebells', videoId: 'RU88iqRVunk' },
-                    { id: 'w3', name: 'Keiser Woodchoppers', sets: '3 sets of 12 reps/side', equipment: 'Keiser Machine (Handle)', videoId: 'pAplQXk3dkU' },
-                    { id: 'w4', name: 'AssaultBike Finisher', sets: '10 mins (15s sprint/45s slow)', equipment: 'AssaultBike', videoId: 'Fv8tIEJhcsc' }
-                ]
-            },
-            Thursday: {
-                location: 'Gym 2',
-                focus: 'Upper Body Pump Day',
-                exercises: [
-                    { id: 'th1', name: 'Barbell Overhead Press', sets: '4 sets of 8-10 reps', equipment: 'Barbell & Rack', videoId: '4LBVP2Oe7fg' },
-                    { id: 'th2', name: 'DB Incline Bench Press', sets: '3 sets of 8-12 reps', equipment: 'Dumbbells & Incline Bench', videoId: '8iPEnn-ltC8' },
-                    { id: 'th3', name: 'DB Single-Arm Rows', sets: '3 sets of 10-12 reps/arm', equipment: 'Dumbbells & Flat Bench', videoId: 'qN54-QNO1eQ' },
-                    { id: 'th4', name: 'Keiser Lateral Raises', sets: '3 sets of 15 reps/arm', equipment: 'Keiser Machine', videoId: 'f_OGBg2KxgY' },
-                    { id: 'th5', name: 'Keiser Cable Bicep Curls', sets: '3 sets of 12 reps', equipment: 'Keiser Machine', videoId: '2MUEL4nL6hA' },
-                    { id: 'th6', name: 'Keiser Tricep Ext.', sets: '3 sets of 12 reps', equipment: 'Keiser Machine (Rope)', videoId: 'b5le--KkyH0' }
-                ]
-            },
-            Saturday: {
-                location: 'Gym 2',
-                focus: 'Lower Body Hypertrophy & Carry',
-                exercises: [
-                    { id: 's1', name: 'Barbell RDLs', sets: '4 sets of 8-10 reps', equipment: 'Barbell & Weights', videoId: '5rIqP63yWFg' },
-                    { id: 's2', name: 'Dumbbell Walking Lunges', sets: '3 sets of 12 steps/leg', equipment: 'Dumbbells', videoId: 'mJilHWIBWO8' },
-                    { id: 's3', name: 'Leg Extensions', sets: '3 sets of 15 reps', equipment: 'BLK BOX Leg Extension', videoId: 'uM86QE59Tgc' },
-                    { id: 's4', name: 'Leg Curls', sets: '3 sets of 15 reps', equipment: 'BLK BOX Leg Curl', videoId: 't9sTSr-JYSs' },
-                    { id: 's5', name: 'DB Carries & KB Swings', sets: '4 rounds (40 paces + 15 swings)', equipment: 'Dumbbells & Kettlebell', videoId: '1uOs1hP3u4A' }
-                ]
-            }
+        // Calculate ISO Week number (used for unique weight tracking per week)
+        const getWeekNumber = (d) => {
+            const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
+            const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+            return Math.ceil(( ( (date - yearStart) / 86400000) + 1)/7);
         };
+        
+        // Converts strings like "Barbell Bench Press" to "barbell-bench-press"
+        const slugify = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
+        const currentWeekIdx = getWeekNumber(new Date());
         const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
         const getTodayStr = () => {
             const today = DAYS[new Date().getDay()];
-            return WORKOUT_PLAN[today] ? today : 'Monday'; 
+            if (WORKOUT_PLAN[today]) return today;
+            // Fallback to first available configured day if today isn't in JSON
+            const availableDays = Object.keys(WORKOUT_PLAN);
+            return availableDays.length > 0 ? availableDays[0] : 'Summary'; 
         };
 
         // --- APP STATE ---
         let state = {
-            sessionId: null, // Unique ID for the current active/today's session
-            selectedDay: getTodayStr(),
-            
-            // Decoupled State Variables
-            sessionStatus: 'idle', // 'idle' | 'active' | 'finished'
-            isShareVisible: false, // Dialog state
-            
-            // Time tracking
-            firstStartTime: null,   // Exact datetime string when workout FIRST started
-            finishTime: null,       // Exact datetime string when workout finished
-            sessionStartTime: null, // Time since the start of the CURRENT active burst
-            accumulatedTime: 0,     // Total paused/finished time safely accumulated
-
+            sessionId: null, 
+            selectedDay: null, // Will be set after config loads
+            sessionStatus: 'idle', 
+            isShareVisible: false, 
+            firstStartTime: null,
+            finishTime: null,
+            sessionStartTime: null,
+            accumulatedTime: 0,
             activeTaskId: null,
             taskTimes: {}, 
             taskCompleted: {}, 
@@ -387,11 +309,11 @@
             timerInterval: null
         };
         
-        let historyData = []; // Array to hold all past workout logs
-        let sessionToDelete = null; // Holds the ID of the session queued for deletion
-
+        let historyData = []; 
+        let sessionToDelete = null; 
         let sessionInterval = null; 
-        const STORAGE_KEY = 'recomp_tracker_data_v4';
+
+        const STORAGE_KEY = 'recomp_tracker_dynamic_v1';
         const HISTORY_KEY = 'recomp_tracker_history';
 
         // --- DOM ELEMENTS ---
@@ -409,7 +331,6 @@
             badgeText: document.getElementById('session-badge-text'),
             badgeDot: document.getElementById('session-badge-dot'),
             
-            // Bottom bar buttons
             bottomBar: document.getElementById('bottom-bar'),
             btnStart: document.getElementById('btn-start-session'),
             btnEnd: document.getElementById('btn-end-session'),
@@ -417,7 +338,6 @@
             btnResumeMain: document.getElementById('btn-resume-main'),
             btnReset: document.getElementById('btn-reset-session'),
             
-            // Modals
             videoModal: document.getElementById('video-modal'),
             videoIframe: document.getElementById('video-iframe'),
             fallbackYoutubeLink: document.getElementById('fallback-youtube-link'),
@@ -439,7 +359,6 @@
             btnCopy: document.getElementById('btn-copy'),
             btnResumeModal: document.getElementById('btn-resume-modal'),
 
-            // History Detail Modal
             historyDetailModal: document.getElementById('history-detail-modal'),
             btnCloseHistoryDetail: document.getElementById('btn-close-history-detail'),
             historyDetailDate: document.getElementById('history-detail-date'),
@@ -450,6 +369,21 @@
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toast-msg')
         };
+
+        async function initApp() {
+            const data = myConfig;
+            
+            WARMUP_ROUTINE = data.warmup;
+            WORKOUT_PLAN = data.plan;
+
+            state.selectedDay = getTodayStr();
+            
+            loadState();
+            updateUIVisibility();
+            renderTabs();
+            renderContent();
+            updateProgressBar();
+        }
 
         const generateId = () => Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 
@@ -474,28 +408,33 @@
         };
 
         const loadState = () => {
-            // Load history
             const savedHistory = localStorage.getItem(HISTORY_KEY);
             if (savedHistory) {
                 try { historyData = JSON.parse(savedHistory); } catch(e) { console.error(e); }
             }
 
-            // Load daily state
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 try { 
                     const parsed = JSON.parse(saved);
                     if (parsed.date === new Date().toDateString()) {
                         state = { ...state, ...parsed.state };
-                        state.activeTaskId = null; // Prevent auto-start
+                        state.activeTaskId = null; // Prevent auto-start on refresh
                         
+                        // Validate selectedDay exists in config after JSON reload
+                        if (!WORKOUT_PLAN[state.selectedDay] && state.selectedDay !== 'Summary') {
+                            state.selectedDay = getTodayStr(); 
+                        }
+
                         if (state.sessionStatus === 'active') {
                             startGlobalTimer();
                         } else if (state.sessionStatus === 'finished') {
                             updateSessionTimerUI();
                         }
                     } else {
-                        // It's a new day, clear current state but KEEP history
+                        // New day, wipe state but preserve the logs globally
+                        const previousLogs = parsed.state?.logs || {};
+                        state.logs = previousLogs; // Retain logs across days to enable the look-back feature
                         localStorage.removeItem(STORAGE_KEY);
                     }
                 } catch(e) { console.error(e); }
@@ -554,7 +493,6 @@
         };
 
         const updateUIVisibility = () => {
-            // Hide everything first
             els.btnStart.classList.add('d-none');
             els.btnEnd.classList.add('d-none');
             els.btnShare.classList.add('d-none');
@@ -563,19 +501,16 @@
             els.sessionBadge.classList.add('d-none');
             els.sessionTimeInfo.classList.add('d-none');
 
-            // Hide the bottom bar entirely on the Summary tab to avoid UI conflicts
             if (state.selectedDay === 'Summary') {
                 els.bottomBar.classList.add('translate-y-[150%]');
             } else {
                 els.bottomBar.classList.remove('translate-y-[150%]');
                 
-                // Show Started Time UI
                 if (state.firstStartTime) {
                     els.sessionTimeInfo.classList.remove('d-none');
                     els.uiStartTime.innerText = formatTimeOnly(state.firstStartTime);
                 }
 
-                // Session Status View Logic
                 if (state.sessionStatus === 'idle') {
                     els.btnStart.classList.remove('d-none');
                     els.tabsContainer.querySelectorAll('button').forEach(b => b.classList.remove('opacity-50', 'cursor-not-allowed'));
@@ -613,7 +548,6 @@
                 }
             }
 
-            // Dialog State
             if (state.isShareVisible) {
                 populateSummaryModal(); 
                 els.summaryModal.classList.remove('d-none');
@@ -661,10 +595,27 @@
         };
 
         const createExerciseHTML = (ex, isWarmup) => {
-            const time = state.taskTimes[ex.id] || 0;
-            const isActive = state.activeTaskId === ex.id;
-            const isComplete = state.taskCompleted[ex.id];
-            const log = state.logs[ex.id] || { weight: '', sets: '', repsL: '', repsR: '' };
+            // Uniquely identify the exercise by Week + Day + Name slug to decouple from order!
+            const baseSlug = slugify(ex.name);
+            const exId = `wk${currentWeekIdx}_${state.selectedDay}_${baseSlug}`;
+            
+            const time = state.taskTimes[exId] || 0;
+            const isActive = state.activeTaskId === exId;
+            const isComplete = state.taskCompleted[exId];
+            
+            // SMART LOOK-BACK: Pre-fill weights based on past performance for this specific exercise!
+            let logObj = state.logs[exId];
+            if (!logObj && !isWarmup) {
+                // Loop backwards up to 4 weeks to locate history
+                for (let i = 1; i <= 4; i++) {
+                    let prevLog = state.logs[`wk${currentWeekIdx - i}_${state.selectedDay}_${baseSlug}`];
+                    if (prevLog) {
+                        logObj = { ...prevLog }; // Clone it so changes affect the CURRENT week
+                        break;
+                    }
+                }
+            }
+            const log = logObj || { weight: '', sets: '', repsL: '', repsR: '' };
             
             let cardClass = "relative overflow-hidden rounded-2xl transition-all duration-300 border mb-4 ";
             if (isActive) cardClass += "active-task-card";
@@ -672,7 +623,7 @@
             else cardClass += "bg-slate-800 border-slate-700";
 
             return `
-                <div id="card-${ex.id}" class="${cardClass}">
+                <div id="card-${exId}" class="${cardClass}">
                     ${isActive ? '<div class="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>' : ''}
                     <div class="p-5">
                         <div class="flex justify-between items-start mb-3">
@@ -687,10 +638,12 @@
                                 }
                             </div>
                             <div class="flex flex-col items-end gap-2 shrink-0">
-                                <div id="timer-${ex.id}" class="font-mono text-2xl font-bold tracking-wider ${isActive ? 'text-emerald-400' : 'text-slate-300'}">${formatTime(time)}</div>
+                                <div id="timer-${exId}" class="font-mono text-2xl font-bold tracking-wider ${isActive ? 'text-emerald-400' : 'text-slate-300'}">${formatTime(time)}</div>
+                                ${ex.videoId ? `
                                 <button onclick="openVideoModal('${ex.videoId}')" class="text-xs font-semibold flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors bg-red-400/10 hover:bg-red-400/20 px-2 py-1.5 rounded-lg border border-red-400/20">
                                     <i class="fab fa-youtube text-sm"></i> Tutorial
                                 </button>
+                                ` : ''}
                             </div>
                         </div>
 
@@ -698,32 +651,32 @@
                         <div class="mt-4 pt-3 border-t border-slate-700/50 grid grid-cols-4 gap-2">
                             <div class="flex flex-col">
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Weight</label>
-                                <input type="number" inputmode="decimal" value="${log.weight}" onchange="updateLog('${ex.id}', 'weight', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="kg/lb">
+                                <input type="number" inputmode="decimal" value="${log.weight}" onchange="updateLog('${exId}', 'weight', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="kg/lb">
                             </div>
                             <div class="flex flex-col">
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Sets</label>
-                                <input type="number" inputmode="numeric" value="${log.sets}" onchange="updateLog('${ex.id}', 'sets', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                                <input type="number" inputmode="numeric" value="${log.sets}" onchange="updateLog('${exId}', 'sets', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
                             </div>
                             <div class="flex flex-col">
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Reps (L)</label>
-                                <input type="number" inputmode="numeric" value="${log.repsL}" onchange="updateLog('${ex.id}', 'repsL', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                                <input type="number" inputmode="numeric" value="${log.repsL}" onchange="updateLog('${exId}', 'repsL', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
                             </div>
                             <div class="flex flex-col">
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-1 ml-1">Reps (R)</label>
-                                <input type="number" inputmode="numeric" value="${log.repsR}" onchange="updateLog('${ex.id}', 'repsR', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
+                                <input type="number" inputmode="numeric" value="${log.repsR}" onchange="updateLog('${exId}', 'repsR', this.value)" class="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-2 py-2 text-sm text-white text-center focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-colors" placeholder="0">
                             </div>
                         </div>
                         ` : ''}
 
                         <div class="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-                            <button onclick="toggleTimer('${ex.id}')" id="btn-toggle-${ex.id}" class="flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${
+                            <button onclick="toggleTimer('${exId}')" id="btn-toggle-${exId}" class="flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${
                                 isActive 
                                     ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/30' 
                                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'
                             }">
                                 ${isActive ? '<i class="fas fa-pause"></i> Pause' : `<i class="fas fa-play"></i> ${time > 0 ? 'Resume' : 'Start'}`}
                             </button>
-                            <button onclick="toggleComplete('${ex.id}')" id="btn-check-${ex.id}" class="w-16 py-3 rounded-xl flex justify-center items-center transition-all ${
+                            <button onclick="toggleComplete('${exId}')" id="btn-check-${exId}" class="w-16 py-3 rounded-xl flex justify-center items-center transition-all ${
                                 isComplete 
                                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
                                     : 'bg-slate-700 text-slate-400 hover:text-white hover:bg-slate-600'
@@ -740,7 +693,6 @@
             const totalWorkouts = historyData.length;
             const totalSeconds = historyData.reduce((acc, curr) => acc + curr.duration, 0);
             const avgSeconds = totalWorkouts ? Math.round(totalSeconds / totalWorkouts) : 0;
-            
             const totalHoursStr = (totalSeconds / 3600).toFixed(1);
             
             let html = `
@@ -751,7 +703,6 @@
                     <p class="text-slate-400 text-sm">Your complete historical progress and consistency.</p>
                 </div>
 
-                <!-- Stats Row -->
                 <div class="grid grid-cols-3 gap-3 mb-8">
                     <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 text-center shadow-lg">
                         <i class="fas fa-dumbbell text-emerald-500 text-xl mb-2"></i>
@@ -770,7 +721,6 @@
                     </div>
                 </div>
 
-                <!-- D3 Charts Container -->
                 <div class="space-y-6 mb-8">
                     <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-xl">
                         <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -792,7 +742,6 @@
                     </div>
                 </div>
 
-                <!-- History List -->
                 <div>
                     <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase mb-4 flex items-center gap-2">
                         <i class="fas fa-history text-slate-500"></i> Log History
@@ -803,7 +752,6 @@
             if (historyData.length === 0) {
                 html += `<div class="text-center py-8 bg-slate-800/50 rounded-2xl border border-slate-700/50 border-dashed text-slate-500 font-medium">No completed workouts yet. Get to work!</div>`;
             } else {
-                // Render newest first
                 const sortedHistory = [...historyData].sort((a, b) => b.timestamp - a.timestamp);
                 sortedHistory.forEach(log => {
                     const dateObj = new Date(log.timestamp);
@@ -831,12 +779,11 @@
             html += `</div></div>`;
             els.mainContent.innerHTML = html;
 
-            // Draw Charts if data exists
             if (totalWorkouts > 0) {
                 setTimeout(() => {
                     drawBarChart();
                     drawAreaChart();
-                }, 50); // slight delay to ensure DOM is ready
+                }, 50); 
             }
         };
 
@@ -856,8 +803,7 @@
             const containerId = "#bar-chart-container";
             d3.select(containerId).selectAll("*").remove();
 
-            // Prepare Data: Sort chronologically, map to { date, minutes }
-            let data = [...historyData].sort((a, b) => a.timestamp - b.timestamp).slice(-14); // last 14 sessions
+            let data = [...historyData].sort((a, b) => a.timestamp - b.timestamp).slice(-14); 
             const chartData = data.map(d => ({
                 label: new Date(d.timestamp).toLocaleDateString(undefined, {month: 'numeric', day: 'numeric'}),
                 minutes: Math.round(d.duration / 60),
@@ -880,11 +826,10 @@
                 .padding(0.3);
 
             const y = d3.scaleLinear()
-                .domain([0, d3.max(chartData, d => d.minutes) * 1.2]) // 20% headroom
+                .domain([0, d3.max(chartData, d => d.minutes) * 1.2])
                 .nice()
                 .range([height - margin.bottom, margin.top]);
 
-            // Grid lines
             svg.append("g")
                 .attr("class", "grid")
                 .attr("transform", `translate(0,0)`)
@@ -893,21 +838,18 @@
                 .style("stroke-opacity", 0.1)
                 .selectAll("path, line").attr("stroke", "#94a3b8");
 
-            // Y Axis
             svg.append("g")
                 .attr("transform", `translate(${margin.left},0)`)
                 .call(d3.axisLeft(y).ticks(4).tickSizeOuter(0))
                 .call(g => g.select(".domain").remove())
                 .selectAll("text").attr("fill", "#64748b").style("font-size", "10px");
 
-            // X Axis
             svg.append("g")
                 .attr("transform", `translate(0,${height - margin.bottom})`)
                 .call(d3.axisBottom(x).tickSizeOuter(0))
                 .call(g => g.select(".domain").remove())
                 .selectAll("text").attr("fill", "#64748b").style("font-size", "10px");
 
-            // Bars
             svg.selectAll(".bar")
                 .data(chartData)
                 .enter().append("rect")
@@ -932,7 +874,6 @@
             const containerId = "#area-chart-container";
             d3.select(containerId).selectAll("*").remove();
 
-            // Prepare Data: Cumulative minutes
             let data = [...historyData].sort((a, b) => a.timestamp - b.timestamp);
             let cumulative = 0;
             const chartData = data.map(d => {
@@ -944,7 +885,6 @@
                 };
             });
 
-            // Ensure we start at 0 before the first data point for a nice mountain climb effect
             if (chartData.length > 0) {
                 const firstDate = new Date(chartData[0].date);
                 firstDate.setDate(firstDate.getDate() - 1);
@@ -970,29 +910,25 @@
                 .nice()
                 .range([height - margin.bottom, margin.top]);
 
-            // Gradient definition
             const defs = svg.append("defs");
             const gradient = defs.append("linearGradient")
                 .attr("id", "area-gradient")
                 .attr("x1", "0%").attr("y1", "0%")
                 .attr("x2", "0%").attr("y2", "100%");
-            gradient.append("stop").attr("offset", "0%").attr("stop-color", "rgba(59, 130, 246, 0.5)"); // blue-500
+            gradient.append("stop").attr("offset", "0%").attr("stop-color", "rgba(59, 130, 246, 0.5)"); 
             gradient.append("stop").attr("offset", "100%").attr("stop-color", "rgba(59, 130, 246, 0)");
 
-            // Area path generator
             const area = d3.area()
                 .x(d => x(d.date))
                 .y0(height - margin.bottom)
                 .y1(d => y(d.total))
                 .curve(d3.curveMonotoneX);
 
-            // Line path generator
             const line = d3.line()
                 .x(d => x(d.date))
                 .y(d => y(d.total))
                 .curve(d3.curveMonotoneX);
 
-            // Grid
             svg.append("g")
                 .attr("transform", `translate(0,0)`)
                 .call(d3.axisLeft(y).tickSize(-width + margin.left + margin.right).ticks(4))
@@ -1000,23 +936,20 @@
                 .style("stroke-opacity", 0.05)
                 .selectAll("path, line").attr("stroke", "#94a3b8");
 
-            // Add Area
             svg.append("path")
                 .datum(chartData)
                 .attr("fill", "url(#area-gradient)")
                 .attr("d", area);
 
-            // Add Line
             svg.append("path")
                 .datum(chartData)
                 .attr("fill", "none")
-                .attr("stroke", "#3b82f6") // blue-500
+                .attr("stroke", "#3b82f6") 
                 .attr("stroke-width", 3)
                 .attr("d", line);
 
-            // Add points
             svg.selectAll(".dot")
-                .data(chartData.filter(d => d.total > 0)) // skip the prepended 0 point
+                .data(chartData.filter(d => d.total > 0)) 
                 .enter().append("circle")
                 .attr("cx", d => x(d.date))
                 .attr("cy", d => y(d.total))
@@ -1033,7 +966,6 @@
                     hideChartTooltip();
                 });
 
-            // Y Axis
             svg.append("g")
                 .attr("transform", `translate(${margin.left},0)`)
                 .call(d3.axisLeft(y).ticks(4).tickSizeOuter(0))
@@ -1048,7 +980,10 @@
             }
 
             const plan = WORKOUT_PLAN[state.selectedDay];
-            if (!plan) return;
+            if (!plan) {
+                els.mainContent.innerHTML = `<div class="text-center text-slate-400 mt-10">Rest Day. No workout planned.</div>`;
+                return;
+            }
 
             let html = `
                 <div class="mb-8 bg-gradient-to-br from-slate-800 to-slate-800/50 rounded-2xl p-5 border border-slate-700 shadow-xl relative overflow-hidden">
@@ -1057,7 +992,7 @@
                         <span class="flex items-center gap-1.5 text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded border border-emerald-500/20 font-bold">
                             <i class="fas fa-map-marker-alt"></i> ${plan.location}
                         </span>
-                        <span class="text-slate-400 font-medium">${plan.exercises.length + WARMUP_ROUTINE.length} Total Exercises</span>
+                        <span class="text-slate-400 font-medium">${(plan.exercises?.length || 0) + WARMUP_ROUTINE.length} Total Exercises</span>
                     </div>
                 </div>
                 <div class="mb-8">
@@ -1122,7 +1057,7 @@
             if (!state.sessionId) return;
             
             const plan = WORKOUT_PLAN[state.selectedDay];
-            const totalTasks = (plan ? plan.exercises.length : 0) + WARMUP_ROUTINE.length;
+            const totalTasks = (plan ? (plan.exercises?.length || 0) : 0) + WARMUP_ROUTINE.length;
             const completedCount = Object.values(state.taskCompleted).filter(Boolean).length;
             const duration = getTotalSessionSeconds();
             const summaryText = generateSummaryText();
@@ -1197,7 +1132,7 @@
         const handleStart = () => {
             if (!state.firstStartTime) {
                 state.firstStartTime = new Date().toISOString();
-                state.sessionId = generateId(); // Assign unique ID for new session tracking
+                state.sessionId = generateId();
             }
             state.sessionStatus = 'active';
             state.sessionStartTime = Date.now();
@@ -1227,7 +1162,7 @@
             
             state.isShareVisible = true;
             
-            saveSessionToHistory(); // Record to global summary log
+            saveSessionToHistory();
             updateUIVisibility();
             saveState();
         };
@@ -1260,7 +1195,6 @@
         };
         els.btnShare.onclick = handleShareLater;
 
-
         const generateSummaryText = () => {
             const totalSeconds = getTotalSessionSeconds();
             const plan = WORKOUT_PLAN[state.selectedDay];
@@ -1273,19 +1207,21 @@
             
             text += `🔥 *Warm-up*\n`;
             WARMUP_ROUTINE.forEach(ex => {
-                const time = state.taskTimes[ex.id] || 0;
-                const status = state.taskCompleted[ex.id] ? '✅' : (time > 0 ? '⏳' : '❌');
+                const exId = `wk${currentWeekIdx}_${state.selectedDay}_${slugify(ex.name)}`;
+                const time = state.taskTimes[exId] || 0;
+                const status = state.taskCompleted[exId] ? '✅' : (time > 0 ? '⏳' : '❌');
                 text += `${status} ${ex.name}: ${formatDuration(time)}\n`;
             });
 
             text += `\n💪 *Main Workout: ${plan.focus}*\n`;
             plan.exercises.forEach(ex => {
-                const time = state.taskTimes[ex.id] || 0;
-                const status = state.taskCompleted[ex.id] ? '✅' : (time > 0 ? '⏳' : '❌');
+                const exId = `wk${currentWeekIdx}_${state.selectedDay}_${slugify(ex.name)}`;
+                const time = state.taskTimes[exId] || 0;
+                const status = state.taskCompleted[exId] ? '✅' : (time > 0 ? '⏳' : '❌');
                 
                 let logStr = '';
-                if (state.logs[ex.id]) {
-                    const { weight, sets, repsL, repsR } = state.logs[ex.id];
+                if (state.logs[exId]) {
+                    const { weight, sets, repsL, repsR } = state.logs[exId];
                     let details = [];
                     if (weight) details.push(`${weight} lb/kg`);
                     if (sets) details.push(`${sets} sets`);
@@ -1329,7 +1265,6 @@
             }
         };
 
-        // Open specific history log details
         window.openHistoryDetail = (id) => {
             const log = historyData.find(h => h.id === id);
             if (!log) return;
@@ -1367,7 +1302,6 @@
             els.historyDetailModal.classList.add('d-none');
         };
 
-        // Reset Daily Progress
         els.btnReset.onclick = () => { els.confirmModal.classList.remove('d-none'); };
         els.btnCancelReset.onclick = () => { els.confirmModal.classList.add('d-none'); };
         els.btnConfirmReset.onclick = () => {
@@ -1375,7 +1309,7 @@
             if (sessionInterval) clearInterval(sessionInterval);
             
             state = {
-                sessionId: null, // Wipe daily ID so starting over creates a new history entry
+                sessionId: null, 
                 selectedDay: state.selectedDay,
                 sessionStatus: 'idle',
                 isShareVisible: false,
@@ -1386,7 +1320,7 @@
                 activeTaskId: null,
                 taskTimes: {},
                 taskCompleted: {},
-                logs: state.logs, 
+                logs: state.logs, // CRITICAL: Retain the logged weights entirely!
                 timerInterval: null
             };
             
@@ -1401,29 +1335,27 @@
             showToast('Session reset (Logs saved)');
         };
 
-        // Delete History Logic
         window.confirmDeleteHistory = (id) => {
             sessionToDelete = id;
             els.deleteHistoryModal.classList.remove('d-none');
         };
+        
         els.btnCancelDelete.onclick = () => {
             sessionToDelete = null;
             els.deleteHistoryModal.classList.add('d-none');
         };
+        
         els.btnConfirmDelete.onclick = () => {
             if (sessionToDelete) {
                 historyData = historyData.filter(log => log.id !== sessionToDelete);
                 localStorage.setItem(HISTORY_KEY, JSON.stringify(historyData));
-                
-                // If they delete today's active session from history, that's fine, we just update the DB
                 els.deleteHistoryModal.classList.add('d-none');
-                renderSummary(); // Re-render without the deleted item
+                renderSummary(); 
                 showToast('Workout log deleted.');
                 sessionToDelete = null;
             }
         };
 
-        // Initialize App on resize (fix D3 charts layout)
         window.addEventListener('resize', () => {
             if (state.selectedDay === 'Summary' && historyData.length > 0) {
                 drawBarChart();
@@ -1431,12 +1363,8 @@
             }
         });
 
-        // Initialize App
-        loadState();
-        updateUIVisibility();
-        renderTabs();
-        renderContent();
-        updateProgressBar();
+        // Initialize application workflow upon DOM ready
+        window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
