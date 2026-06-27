@@ -3,8 +3,14 @@ const filesToCache = [
   './',
   './index.html',
   './logo.png',
-  './manifest.json'
-  './config.js'
+  './manifest.json',
+  './arzoo-config.js',
+  './default-config.js',
+  './main-config.js',
+  './main-1.js',
+  './main-2.js',
+  './main-3.js',
+  './main-4.js',
 ];
 
 // Install Service Worker and cache essential files
