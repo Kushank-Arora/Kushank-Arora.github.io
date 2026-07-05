@@ -71,6 +71,12 @@
                     <i class="fas fa-leaf text-emerald-500"></i>
                     Diet<span class="text-emerald-500">Tracker</span>
                 </h1>
+
+                <select id="config-selector" class="bg-slate-800 text-slate-300 text-[10px] uppercase tracking-wider font-bold rounded-full px-3 py-1 border border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer">
+                        <option value="arzoo">Arzoo</option>
+                        <option value="default">Kushank</option>
+                    </select>
+
                 <button onclick="openInfoModal()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 transition-colors">
                     <i class="fas fa-info-circle text-emerald-400"></i>
                     <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Guidelines</span>
@@ -190,6 +196,8 @@
         <i class="fas fa-check-circle"></i> <span id="toast-msg">Success</span>
     </div>
 
+    <script src="diet-arzoo.js"></script>
+    <script src="diet-default.js"></script>
     <script src="diet-data.js"></script>
     <script src="diet.js"></script>
 </body>

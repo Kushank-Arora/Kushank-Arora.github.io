@@ -1,3 +1,13 @@
+// Config selector
+const configSelector = document.getElementById('config-selector');
+configSelector.value = localStorage.getItem('diet_profile') || 'default';
+configSelector.addEventListener('change', (e) => {
+    localStorage.setItem('diet_profile', e.target.value);
+    window.location.reload(); 
+});
+
+DIET_DATA = DIET_OPTIONS[localStorage.getItem('diet_profile') || 'default'];
+
 const DAYS_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const getTodayStr = () => {
     const todayIdx = new Date().getDay(); 
