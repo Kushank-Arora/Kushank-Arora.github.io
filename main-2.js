@@ -81,11 +81,20 @@ const createExerciseHTML = (ex, isWarmup) => {
                     </div>
                     <div class="flex flex-col items-end gap-2 shrink-0">
                         <div id="timer-${exId}" class="font-mono text-2xl font-bold tracking-wider ${isActive ? 'text-emerald-400' : 'text-slate-300'}">${formatTime(time)}</div>
-                        ${ex.videoId ? `
-                        <button onclick="openVideoModal('${ex.videoId}')" class="text-xs font-semibold flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors bg-red-400/10 hover:bg-red-400/20 px-2 py-1.5 rounded-lg border border-red-400/20">
-                            <i class="fab fa-youtube text-sm"></i> Tutorial
-                        </button>
-                        ` : ''}
+
+                        <div class="flex flex-row gap-2">
+                            ${ex.imgID ? `
+                            <button onclick="openDemo('${exId}', '${ex.imgID}', '${ex.sets || ex.details}')" class="text-xs font-semibold flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors bg-emerald-400/10 hover:bg-emerald-400/20 px-2 py-1.5 rounded-lg border border-emerald-400/20">
+                                <i class="fas fa-image text-sm"></i> Demo
+                            </button>
+                            ` : ''}
+
+                            ${ex.videoId ? `
+                            <button onclick="openVideoModal('${ex.videoId}')" class="text-xs font-semibold flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors bg-red-400/10 hover:bg-red-400/20 px-2 py-1.5 rounded-lg border border-red-400/20">
+                                <i class="fab fa-youtube text-sm"></i> Tutorial
+                            </button>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
 
@@ -111,7 +120,7 @@ const createExerciseHTML = (ex, isWarmup) => {
                 ` : ''}
 
                 <div class="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
-                    <button onclick="toggleTimer('${exId}')" id="btn-toggle-${exId}" class="flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${
+                    <button onclick="toggleTimer('${exId}', '${ex.imgID}', '${ex.sets || ex.details}')" id="btn-toggle-${exId}" class="flex-1 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${
                         isActive 
                             ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 border border-amber-500/30' 
                             : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'

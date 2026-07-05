@@ -119,6 +119,7 @@ async function initApp() {
     state.selectedDay = getTodayStr();
     
     loadState();
+    maybeUpdateStateBasedOnQueryParams();
     updateUIVisibility();
     renderTabs();
     renderContent();

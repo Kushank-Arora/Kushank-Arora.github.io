@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Body Recomp Diet Plan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .d-none { display: none !important; }
+        
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .selected-option {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .meal-completed {
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox-wrapper input:checked + div {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        .checkbox-wrapper input:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body class="pb-32">
+
+    <!-- Fixed Header -->
+    <header class="sticky top-0 z-30 glass-panel">
+        <div class="max-w-2xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                    <i class="fas fa-leaf text-emerald-500"></i>
+                    Diet<span class="text-emerald-500">Tracker</span>
+                </h1>
+                <button onclick="openInfoModal()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 transition-colors">
+                    <i class="fas fa-info-circle text-emerald-400"></i>
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Guidelines</span>
+                </button>
+            </div>
+
+            <!-- Day Tabs -->
+            <div id="tabs-container" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar"></div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="h-1 bg-slate-800 w-full">
+            <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
+    <div class="max-w-2xl mx-auto px-4 -mt-2 mb-4">
+    <div class="flex p-1 bg-slate-800 rounded-xl border border-slate-700/50">
+        <button onclick="switchApp('index.html')" class="flex-1 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">
+            Workout
+        </button>
+        <button class="flex-1 py-1.5 text-xs font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400 rounded-lg">
+            Diet
+        </button>
+    </div>
+</div>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="max-w-2xl mx-auto px-4 py-6"></main>
+
+    <!-- Bottom Action Bar -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full glass-panel border-t border-slate-700/50 p-4 z-20">
+        <div class="max-w-2xl mx-auto flex gap-3">
+            <button onclick="openGroceryModal()" class="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-xl text-lg transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex justify-center items-center gap-2">
+                <i class="fas fa-shopping-cart"></i> Generate Grocery List
+            </button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Recipe Modal Overlay -->
+    <div id="recipe-modal" class="d-none fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm transition-opacity pt-20 pb-20 overflow-y-auto">
+        <div class="w-full max-w-lg bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col m-auto">
+            <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
+                <h3 id="recipe-title" class="font-bold text-white flex items-center gap-2 text-lg">
+                    <i class="fas fa-utensils text-emerald-500"></i> Recipe Name
+                </h3>
+                <button onclick="closeRecipeModal()" class="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 h-8 w-8 rounded-full flex items-center justify-center transition-colors border border-slate-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 text-sm">
+                <h4 class="text-xs font-black tracking-widest text-emerald-400 uppercase mb-2">Ingredients</h4>
+                <ul id="recipe-ingredients" class="list-disc pl-5 mb-6 text-slate-300 space-y-1"></ul>
+                
+                <h4 class="text-xs font-black tracking-widest text-emerald-400 uppercase mb-2">Method</h4>
+                <ol id="recipe-method" class="list-decimal pl-5 text-slate-300 space-y-2"></ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info/Guidelines Modal -->
+    <div id="info-modal" class="d-none fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm transition-opacity pt-10 pb-10 overflow-y-auto">
+        <div class="w-full max-w-lg bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col m-auto">
+            <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
+                <h3 class="font-bold text-white flex items-center gap-2 text-lg">
+                    <i class="fas fa-bullseye text-emerald-500"></i> Diet Guidelines
+                </h3>
+                <button onclick="closeInfoModal()" class="text-slate-400 hover:text-white bg-slate-700 h-8 w-8 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-6" id="info-content">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Grocery List Modal -->
+    <div id="grocery-modal" class="d-none fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm transition-opacity pt-10 pb-10 overflow-y-auto">
+        <div class="w-full max-w-lg bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col m-auto">
+            <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800 sticky top-0 z-10">
+                <h3 class="font-bold text-white flex items-center gap-2 text-lg">
+                    <i class="fas fa-basket-shopping text-emerald-500"></i> Grocery List
+                </h3>
+                <button onclick="closeGroceryModal()" class="text-slate-400 hover:text-white bg-slate-700 h-8 w-8 rounded-full flex items-center justify-center transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-5">
+                <p class="text-sm text-slate-400 mb-4">Select days to generate a combined grocery list based on your <b>currently selected meal options</b>.</p>
+                
+                <div class="grid grid-cols-2 gap-2 mb-6" id="grocery-days-container">
+                    <!-- Day checkboxes injected via JS -->
+                </div>
+                
+                <button onclick="generateGroceryListUI()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors mb-6 shadow-lg shadow-emerald-900/20 active:scale-95">
+                    Generate List
+                </button>
+
+                <div id="grocery-result-area" class="d-none">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-black tracking-widest text-emerald-400 uppercase">Items Needed</h4>
+                        <button onclick="copyGroceryList()" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded flex items-center gap-1 transition-colors">
+                            <i class="far fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <div id="grocery-list-content" class="bg-slate-800 rounded-xl p-4 text-sm text-slate-300 space-y-2 max-h-60 overflow-y-auto border border-slate-700">
+                        <!-- List injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[120] bg-slate-800 text-emerald-400 px-6 py-3 rounded-full font-bold shadow-2xl border border-emerald-500/30 flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-4">
+        <i class="fas fa-check-circle"></i> <span id="toast-msg">Success</span>
+    </div>
+
+    <script src="diet-data.js"></script>
+    <script src="diet.js"></script>
+</body>
+</html>

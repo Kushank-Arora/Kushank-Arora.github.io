@@ -218,7 +218,7 @@ window.updateLog = (taskId, field, value) => {
     saveState();
 };
 
-window.toggleTimer = (taskId) => {
+window.toggleTimer = (taskId, imgID, targetSets) => {
     if (state.sessionStatus === 'idle') handleStart();
     else if (state.sessionStatus === 'finished') handleResume();
 
@@ -228,7 +228,9 @@ window.toggleTimer = (taskId) => {
     } else {
         state.activeTaskId = taskId;
         startTaskTimerInterval();
+        window.openDemo(taskId, imgID, targetSets);
     }
+
     saveState();
     renderContent();
 };
@@ -251,11 +253,11 @@ window.toggleComplete = (taskId) => {
 window.openVideoModal = (videoId) => {
     els.videoIframe.src = `https://www.youtube.com/embed/${videoId}?loop=1&playlist=${videoId}`;
     els.fallbackYoutubeLink.href = `https://www.youtube.com/watch?v=${videoId}`;
-    els.videoModal.classList.remove('d-none');
+    window.openModal('video-modal');
 };
 
 els.btnCloseVideo.onclick = () => {
-    els.videoModal.classList.add('d-none');
+    window.closeModal('video-modal');
     els.videoIframe.src = ''; 
 };
 
@@ -266,7 +268,7 @@ const handleStart = () => {
     }
     state.sessionStatus = 'active';
     state.sessionStartTime = Date.now();
-    
+
     startGlobalTimer();
     updateUIVisibility();
     renderTabs(); 
