@@ -117,7 +117,7 @@ const defaultConfig = {
         { "imgID": "leg_extension", "name": "Leg Extension", "sets": "3 sets of 12 reps", "equipment": "BLK BOX Leg Extension", "videoId": "uM86QE59Tgc" },
         { "imgID": "seated_leg_curl", "name": "Seated Leg Curl", "sets": "3 sets of 12 reps", "equipment": "BLK BOX Leg Curl", "videoId": "_lgE0gPvbik" },
         { "imgID": "seated_calf_raise", "name": "Seated Calf Raise", "sets": "4 sets of 15 reps", "equipment": "Bench, Bumper Plate & Kettlebells", "videoId": "" },
-        { "name": "HIIT Cardio (AssaultBike Sprints)", "sets": "8-10 rounds: 30s max effort sprint / 90s slow recovery", "equipment": "AssaultBike", "videoId": "KC-ZSfOmXgE" }
+        { "imgID": "hiit_cardio", "name": "HIIT Cardio (AssaultBike Sprints)", "sets": "8-10 rounds: 30s max effort sprint / 90s slow recovery", "equipment": "AssaultBike", "videoId": "KC-ZSfOmXgE" }
       ]
     },
     "Sunday": {
