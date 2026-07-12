@@ -151,7 +151,7 @@ const renderSummary = () => {
             <h2 class="text-2xl font-black text-white mb-1 tracking-tight flex items-center gap-2">
                 <i class="fas fa-chart-pie text-blue-500"></i> Lifetime Summary
             </h2>
-            <p class="text-slate-400 text-sm">Your complete historical progress and consistency.</p>
+            <p class="text-slate-400 text-sm" onclick="openHistoryEntryModal()">Your complete historical progress and consistency.</p>
         </div>
 
         <div class="grid grid-cols-3 gap-3 mb-8">

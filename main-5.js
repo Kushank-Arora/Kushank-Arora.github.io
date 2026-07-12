@@ -122,3 +122,41 @@ function maybeUpdateStateBasedOnQueryParams() {
         state.selectedDay = dayParam;
     }
 }
+
+
+// History modal thingy
+// 1. Open the modal (trigger this from your UI, e.g., a "History" button click)
+function openHistoryEntryModal() {
+    document.getElementById('history-entry-modal').classList.remove('d-none');
+}
+
+// 2. Save logic
+document.getElementById('btn-save-history-entry').addEventListener('click', () => {
+    const dateVal = document.getElementById('history-date').value;
+    const durationMins = parseInt(document.getElementById('history-duration').value) || 0;
+    
+    const entry = {
+        id: generateId(),
+        day: document.getElementById('history-category').value,
+        timestamp: new Date(dateVal).getTime(),
+        duration: durationMins * 60, // Convert to seconds for your logic
+        totalTasks: parseInt(document.getElementById('history-tasks').value) || 0,
+        completedTasks: parseInt(document.getElementById('history-tasks').value) || 0, // Assuming all entered are done
+        content: document.getElementById('history-raw-msg').value
+    };
+
+    // Update global state
+    historyData.push(entry);
+    historyData.sort((a, b) => b.timestamp - a.timestamp);
+    localStorage.setItem(HISTORY_KEY+"backup", localStorage.getItem(HISTORY_KEY))
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(historyData));
+    
+    // UI Cleanup
+    document.getElementById('history-entry-modal').classList.add('d-none');
+    showToast("History entry saved!");
+    
+    // Refresh the Summary view if we are on it
+    if (state.selectedDay === 'Summary') {
+        renderSummary();
+    }
+});
