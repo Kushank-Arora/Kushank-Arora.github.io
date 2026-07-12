@@ -151,11 +151,11 @@ const renderSummary = () => {
             <h2 class="text-2xl font-black text-white mb-1 tracking-tight flex items-center gap-2">
                 <i class="fas fa-chart-pie text-blue-500"></i> Lifetime Summary
             </h2>
-            <p class="text-slate-400 text-sm" onclick="openHistoryEntryModal()">Your complete historical progress and consistency.</p>
+            <p class="text-slate-400 text-sm">Your complete historical progress and consistency.</p>
         </div>
 
         <div class="grid grid-cols-3 gap-3 mb-8">
-            <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 text-center shadow-lg">
+            <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 text-center shadow-lg" onclick="openHistoryEntryModal()">
                 <i class="fas fa-dumbbell text-emerald-500 text-xl mb-2"></i>
                 <div class="text-2xl font-black text-white leading-none">${totalWorkouts}</div>
                 <div class="text-[10px] uppercase font-bold text-slate-400 mt-1">Workouts</div>
