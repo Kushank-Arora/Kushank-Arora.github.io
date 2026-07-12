@@ -172,6 +172,8 @@ const startTaskTimerInterval = () => {
             state.taskTimes[state.activeTaskId] = (state.taskTimes[state.activeTaskId] || 0) + 1;
             const timeEl = document.getElementById(`timer-${state.activeTaskId}`);
             if (timeEl) timeEl.innerText = formatTime(state.taskTimes[state.activeTaskId]);
+            const timerEls = Array.from(document.getElementsByClassName(`timer-${state.activeTaskId}`));
+            timerEls.forEach(t => t.innerText = formatTime(state.taskTimes[state.activeTaskId]));
         }
     }, 1000);
 };

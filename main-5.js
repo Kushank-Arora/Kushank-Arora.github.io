@@ -6,6 +6,7 @@ const elsDemo = {
     modal: document.getElementById('demo-modal'),
     image: document.getElementById('demo-image'),
     stats: document.getElementById('demo-stats'),
+    timer: document.getElementById('demo-modal-timer'),
     closeBtn: document.getElementById('btn-close-demo')
 };
 
@@ -18,14 +19,17 @@ const loadDemoImage = (imgId) => {
     // 2. If PNG fails, try GIF
     img.onerror = () => {
         // If we were already trying the GIF and it failed, stop
-        if (img.src.endsWith('.gif')) {
+        if (img.src.endsWith('.png')) {
+            img.src = `exercises/${imgId}.jpg`;
+        } else if (img.src.endsWith('.jpg')) {
+            img.src = `exercises/${imgId}.jpeg`;
+        } else if (img.src.endsWith('.jpeg')) {
+            img.src = `exercises/${imgId}.gif`;
+        } else {
             console.warn('Demo image not found for:', imgId);
-            return;
+            // Clear error handler so we don't loop
+            img.onerror = null;
         }
-        // Switch to GIF
-        img.src = `exercises/${imgId}.gif`;
-        // Clear error handler so we don't loop
-        img.onerror = null; 
     };
 };
 
@@ -47,6 +51,10 @@ window.openDemo = (exId, imgID, targetSets) => {
         </div>
     `;
 
+    const time = state.taskTimes[exId] || 0;
+
+    elsDemo.timer.innerText = formatTime(time);
+    elsDemo.timer.className = `timer-${exId}`;
     loadDemoImage(imgID);
     window.openModal('demo-modal');
 };
