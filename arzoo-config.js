@@ -1,4 +1,4 @@
-{
+const arzooConfig = {
   "plan": {
     "Monday": {
       "focus": "Lower Body & Core & Cardio",
